@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "U2SSO Extension Experiment",
+  "version": "0.1.0",
+  "description": "React and Tailwind popup that reuses the logic experiment to generate U2SSO registration and login payloads.",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "U2SSO Experiment",
+    "default_popup": "index.html"
+  }
+}
