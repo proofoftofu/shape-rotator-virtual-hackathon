@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import demoService from "../../../src/server/demoService";
 
 export async function POST(request) {

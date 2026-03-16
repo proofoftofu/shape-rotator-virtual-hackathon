@@ -2,19 +2,23 @@
 
 const crypto = require("node:crypto");
 const path = require("node:path");
-const {
-  DEFAULT_GROUP_SECRETS,
-  createRegistryGroup,
-  runLogicExperiment,
-} = require("../../../logic/src");
 const { store } = require("./demoStore");
+const { getLogicModule } = require("./logicRuntime");
 const {
   verifyLoginInWorker,
   verifyRegistrationInWorker
 } = require("./verifierClient");
 
 const DEMO_SERVICE_NAME = "sample.service.local";
+const {
+  DEFAULT_GROUP_SECRETS,
+  createRegistryGroup,
+  runLogicExperiment,
+  verifyLoginPayload,
+  verifyRegistrationPayload
+} = getLogicModule();
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
+const VERIFICATION_MODE = process.env.U2SSO_SAMPLE_VERIFY_MODE || "worker";
 const DEMO_SEMAPHORE_ARTIFACTS = {
   wasm: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.wasm"),
   zkey: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.zkey")
@@ -155,19 +159,28 @@ async function registerAccount({
   });
   let isValid;
 
-  try {
-    const verificationResult = await verifyRegistrationInWorker({
+  if (VERIFICATION_MODE === "in-process") {
+    console.log("[u2sso-sample][server] registerAccount using in-process verification");
+    isValid = await verifyRegistrationPayload(registrationPayload, {
       challenge: registrationPayload.challenge,
-      groupSecrets: DEFAULT_GROUP_SECRETS,
-      payload: registrationPayload,
+      groupContext: registryGroup,
       serviceName
     });
-    isValid = verificationResult.ok;
-  } catch (error) {
-    console.warn("[u2sso-sample][server] registerAccount worker verification unavailable, using lite checks", {
-      error: error.message
-    });
-    isValid = verifyRegistrationPayloadLite(registrationPayload, registryGroup, serviceName);
+  } else {
+    try {
+      const verificationResult = await verifyRegistrationInWorker({
+        challenge: registrationPayload.challenge,
+        groupSecrets: DEFAULT_GROUP_SECRETS,
+        payload: registrationPayload,
+        serviceName
+      });
+      isValid = verificationResult.ok;
+    } catch (error) {
+      console.warn("[u2sso-sample][server] registerAccount worker verification unavailable, using lite checks", {
+        error: error.message
+      });
+      isValid = verifyRegistrationPayloadLite(registrationPayload, registryGroup, serviceName);
+    }
   }
 
   if (!isValid) {
@@ -232,13 +245,24 @@ async function loginAccount({
     throw new Error("Unknown account");
   }
 
-  const verificationResult = await verifyLoginInWorker({
-    challenge: loginPayload.challenge,
-    expectedSpkCommitment: account.spkCommitment,
-    expectedSpkPublicKey: account.spkPublicKey,
-    payload: loginPayload
-  });
-  const isValid = verificationResult.ok;
+  let isValid;
+
+  if (VERIFICATION_MODE === "in-process") {
+    console.log("[u2sso-sample][server] loginAccount using in-process verification");
+    isValid = await verifyLoginPayload(loginPayload, {
+      challenge: loginPayload.challenge,
+      expectedSpkCommitment: account.spkCommitment,
+      expectedSpkPublicKey: account.spkPublicKey
+    });
+  } else {
+    const verificationResult = await verifyLoginInWorker({
+      challenge: loginPayload.challenge,
+      expectedSpkCommitment: account.spkCommitment,
+      expectedSpkPublicKey: account.spkPublicKey,
+      payload: loginPayload
+    });
+    isValid = verificationResult.ok;
+  }
 
   if (!isValid) {
     throw new Error("Login signature verification failed");
