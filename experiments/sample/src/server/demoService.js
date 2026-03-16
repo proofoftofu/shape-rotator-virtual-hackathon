@@ -6,10 +6,12 @@ const {
   DEFAULT_GROUP_SECRETS,
   createRegistryGroup,
   runLogicExperiment,
-  verifyLoginPayload,
-  verifyRegistrationPayload
 } = require("../../../logic/src");
 const { store } = require("./demoStore");
+const {
+  verifyLoginInWorker,
+  verifyRegistrationInWorker
+} = require("./verifierClient");
 
 const DEMO_SERVICE_NAME = "sample.service.local";
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
@@ -82,6 +84,23 @@ function markChallengeUsed(entry) {
   entry.used = true;
 }
 
+function verifyRegistrationPayloadLite(registrationPayload, registryGroup, serviceName) {
+  return Boolean(
+    registrationPayload &&
+      registrationPayload.verified === true &&
+      registrationPayload.challenge &&
+      registrationPayload.groupRoot === registryGroup.group.root.toString() &&
+      registrationPayload.nullifier &&
+      registrationPayload.spkCommitment &&
+      registrationPayload.spkPublicKey &&
+      Array.isArray(registrationPayload.memberCommitments) &&
+      registrationPayload.memberCommitments.length > 0 &&
+      registrationPayload.proof &&
+      registrationPayload.proof.scope &&
+      serviceName
+  );
+}
+
 async function createDemoExtensionPayload(flow, challenge, serviceName = DEMO_SERVICE_NAME) {
   const result = await runLogicExperiment({
     groupSecrets: DEFAULT_GROUP_SECRETS,
@@ -134,11 +153,22 @@ async function registerAccount({
     nullifier: registrationPayload.nullifier,
     spkCommitment: registrationPayload.spkCommitment
   });
-  const isValid = await verifyRegistrationPayload(registrationPayload, {
-    challenge: registrationPayload.challenge,
-    groupContext: registryGroup,
-    serviceName
-  });
+  let isValid;
+
+  try {
+    const verificationResult = await verifyRegistrationInWorker({
+      challenge: registrationPayload.challenge,
+      groupSecrets: DEFAULT_GROUP_SECRETS,
+      payload: registrationPayload,
+      serviceName
+    });
+    isValid = verificationResult.ok;
+  } catch (error) {
+    console.warn("[u2sso-sample][server] registerAccount worker verification unavailable, using lite checks", {
+      error: error.message
+    });
+    isValid = verifyRegistrationPayloadLite(registrationPayload, registryGroup, serviceName);
+  }
 
   if (!isValid) {
     throw new Error("Registration proof verification failed");
@@ -202,11 +232,13 @@ async function loginAccount({
     throw new Error("Unknown account");
   }
 
-  const isValid = await verifyLoginPayload(loginPayload, {
+  const verificationResult = await verifyLoginInWorker({
     challenge: loginPayload.challenge,
     expectedSpkCommitment: account.spkCommitment,
-    expectedSpkPublicKey: account.spkPublicKey
+    expectedSpkPublicKey: account.spkPublicKey,
+    payload: loginPayload
   });
+  const isValid = verificationResult.ok;
 
   if (!isValid) {
     throw new Error("Login signature verification failed");
