@@ -4,10 +4,6 @@ const crypto = require("node:crypto");
 const path = require("node:path");
 const { store } = require("./demoStore");
 const { getLogicModule } = require("./logicRuntime");
-const {
-  verifyLoginInWorker,
-  verifyRegistrationInWorker
-} = require("./verifierClient");
 
 const DEMO_SERVICE_NAME = "sample.service.local";
 const {
@@ -18,7 +14,6 @@ const {
   verifyRegistrationPayload
 } = getLogicModule();
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
-const VERIFICATION_MODE = process.env.U2SSO_SAMPLE_VERIFY_MODE || "worker";
 const DEMO_SEMAPHORE_ARTIFACTS = {
   wasm: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.wasm"),
   zkey: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.zkey")
@@ -88,23 +83,6 @@ function markChallengeUsed(entry) {
   entry.used = true;
 }
 
-function verifyRegistrationPayloadLite(registrationPayload, registryGroup, serviceName) {
-  return Boolean(
-    registrationPayload &&
-      registrationPayload.verified === true &&
-      registrationPayload.challenge &&
-      registrationPayload.groupRoot === registryGroup.group.root.toString() &&
-      registrationPayload.nullifier &&
-      registrationPayload.spkCommitment &&
-      registrationPayload.spkPublicKey &&
-      Array.isArray(registrationPayload.memberCommitments) &&
-      registrationPayload.memberCommitments.length > 0 &&
-      registrationPayload.proof &&
-      registrationPayload.proof.scope &&
-      serviceName
-  );
-}
-
 async function createDemoExtensionPayload(flow, challenge, serviceName = DEMO_SERVICE_NAME) {
   const result = await runLogicExperiment({
     groupSecrets: DEFAULT_GROUP_SECRETS,
@@ -157,31 +135,12 @@ async function registerAccount({
     nullifier: registrationPayload.nullifier,
     spkCommitment: registrationPayload.spkCommitment
   });
-  let isValid;
-
-  if (VERIFICATION_MODE === "in-process") {
-    console.log("[u2sso-sample][server] registerAccount using in-process verification");
-    isValid = await verifyRegistrationPayload(registrationPayload, {
-      challenge: registrationPayload.challenge,
-      groupContext: registryGroup,
-      serviceName
-    });
-  } else {
-    try {
-      const verificationResult = await verifyRegistrationInWorker({
-        challenge: registrationPayload.challenge,
-        groupSecrets: DEFAULT_GROUP_SECRETS,
-        payload: registrationPayload,
-        serviceName
-      });
-      isValid = verificationResult.ok;
-    } catch (error) {
-      console.warn("[u2sso-sample][server] registerAccount worker verification unavailable, using lite checks", {
-        error: error.message
-      });
-      isValid = verifyRegistrationPayloadLite(registrationPayload, registryGroup, serviceName);
-    }
-  }
+  console.log("[u2sso-sample][server] registerAccount using in-process verification");
+  const isValid = await verifyRegistrationPayload(registrationPayload, {
+    challenge: registrationPayload.challenge,
+    groupContext: registryGroup,
+    serviceName
+  });
 
   if (!isValid) {
     throw new Error("Registration proof verification failed");
@@ -245,24 +204,12 @@ async function loginAccount({
     throw new Error("Unknown account");
   }
 
-  let isValid;
-
-  if (VERIFICATION_MODE === "in-process") {
-    console.log("[u2sso-sample][server] loginAccount using in-process verification");
-    isValid = await verifyLoginPayload(loginPayload, {
-      challenge: loginPayload.challenge,
-      expectedSpkCommitment: account.spkCommitment,
-      expectedSpkPublicKey: account.spkPublicKey
-    });
-  } else {
-    const verificationResult = await verifyLoginInWorker({
-      challenge: loginPayload.challenge,
-      expectedSpkCommitment: account.spkCommitment,
-      expectedSpkPublicKey: account.spkPublicKey,
-      payload: loginPayload
-    });
-    isValid = verificationResult.ok;
-  }
+  console.log("[u2sso-sample][server] loginAccount using in-process verification");
+  const isValid = await verifyLoginPayload(loginPayload, {
+    challenge: loginPayload.challenge,
+    expectedSpkCommitment: account.spkCommitment,
+    expectedSpkPublicKey: account.spkPublicKey
+  });
 
   if (!isValid) {
     throw new Error("Login signature verification failed");
