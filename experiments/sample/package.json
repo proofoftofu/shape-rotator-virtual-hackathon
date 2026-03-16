@@ -1,0 +1,17 @@
+{
+  "name": "u2sso-sample-experiment",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Next.js sample service experiment for U2SSO signup and login",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "next": "15.2.2",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  }
+}
