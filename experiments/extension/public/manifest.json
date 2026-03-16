@@ -4,6 +4,13 @@
   "version": "0.1.0",
   "description": "React and Tailwind popup that reuses the logic experiment to generate U2SSO registration and login payloads.",
   "permissions": ["storage"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["assets/contentBridge.js"],
+      "run_at": "document_start"
+    }
+  ],
   "action": {
     "default_title": "U2SSO Experiment",
     "default_popup": "index.html"

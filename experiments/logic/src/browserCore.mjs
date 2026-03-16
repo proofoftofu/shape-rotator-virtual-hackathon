@@ -1,50 +1,80 @@
-"use strict";
+import { Group } from "@semaphore-protocol/group";
+import { Identity } from "@semaphore-protocol/identity";
+import { buildBabyjub } from "circomlibjs";
+import { generateProof, verifyProof } from "@semaphore-protocol/proof";
+import { encodeBytes32String, toBigInt } from "ethers";
+import { poseidon3 } from "poseidon-lite";
 
-const crypto = require("node:crypto");
-const fs = require("node:fs/promises");
-const path = require("node:path");
-const { getCurveFromName } = require("ffjavascript");
-const { Group } = require("@semaphore-protocol/group");
-const {
-  authProof,
-  authVerify,
-  createID,
-  createSPK,
-  deriveChildPublicKey,
-  deriveChildSecretKey,
-  proveMem,
-  verifyMem
-} = require("./forkReference");
-
-const DEFAULT_MASTER_SECRET_PATH = path.join(__dirname, "..", "fixtures", "master-secret.bin");
-const DEFAULT_SERVICE_NAME = "demo.service.local";
-const DEFAULT_REGISTRATION_CHALLENGE = "register-demo-challenge";
-const DEFAULT_LOGIN_CHALLENGE = "login-demo-challenge";
-const DEFAULT_GROUP_SECRETS = [
+export const DEFAULT_SERVICE_NAME = "demo.service.local";
+export const DEFAULT_REGISTRATION_CHALLENGE = "register-demo-challenge";
+export const DEFAULT_LOGIN_CHALLENGE = "login-demo-challenge";
+export const DEFAULT_GROUP_SECRETS = [
   "11111111111111111111111111111111",
   "22222222222222222222222222222222",
   "33333333333333333333333333333333",
   "44444444444444444444444444444444"
 ];
 
-function randomMasterSecretBytes() {
-  return crypto.randomBytes(32);
+export function convertMessage(message) {
+  try {
+    return toBigInt(message);
+  } catch (error) {
+    return toBigInt(encodeBytes32String(message));
+  }
 }
 
-function bufferToHex(buffer) {
-  return Buffer.from(buffer).toString("hex");
+export async function createID(masterSecret) {
+  return new Identity(masterSecret);
 }
 
-function hexToBuffer(hex) {
-  return Buffer.from(hex, "hex");
+export function deriveChildSecretKey(masterSecret, serviceName, count = 100) {
+  const convertedName = convertMessage(serviceName);
+  return poseidon3([masterSecret[1], convertedName, count]);
 }
 
-async function terminateProofWorkers() {
-  const curve = await getCurveFromName("bn128");
-  await curve.terminate();
+export async function deriveChildPublicKey(childSecretKey) {
+  const babyJub = await buildBabyjub();
+  const field = babyJub.F;
+  const baseG = [
+    field.e("5299619240641551281634865583518297030282874472190772894086521144482721001553"),
+    field.e("16950150798460657717958625567821834550301663161624707787222815936182638968203")
+  ];
+
+  return babyJub.addPoint(
+    babyJub.Base8,
+    babyJub.mulPointEscalar(baseG, childSecretKey)
+  );
 }
 
-function parsePublicKeyString(publicKey) {
+export async function createSPK(masterSecret, serviceName) {
+  const childSecretKey = deriveChildSecretKey(masterSecret, serviceName, 100);
+  return new Identity(childSecretKey.toString());
+}
+
+export async function authProof(masterSecret, challenge, serviceName) {
+  const spk = await createSPK(masterSecret, serviceName);
+  return spk.signMessage(challenge);
+}
+
+export async function authVerify(spk, signature, challenge) {
+  return Identity.verifySignature(challenge, signature, spk.publicKey);
+}
+
+export async function proveMem(masterSecret, group, serviceName, challenge, snarkArtifacts) {
+  const identity = new Identity(masterSecret);
+  return generateProof(identity, group, challenge, serviceName, 2, snarkArtifacts);
+}
+
+export async function verifyMem(proof, group, serviceName, challenge) {
+  const isValid = await verifyProof(proof);
+  const checkRoot = proof.merkleTreeRoot === group.root.toString();
+  const checkMessage = proof.message === convertMessage(challenge).toString();
+  const checkScope = proof.scope === convertMessage(serviceName).toString();
+
+  return isValid && checkRoot && checkMessage && checkScope;
+}
+
+export function parsePublicKeyString(publicKey) {
   if (Array.isArray(publicKey)) {
     return publicKey.map((value) => BigInt(value));
   }
@@ -56,40 +86,7 @@ function parsePublicKeyString(publicKey) {
   return publicKey.split(",").map((value) => BigInt(value.trim()));
 }
 
-async function createPasskey(filePath) {
-  const passkey = randomMasterSecretBytes();
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, passkey);
-  return passkey;
-}
-
-async function loadPasskey(filePath) {
-  const passkey = await fs.readFile(filePath);
-
-  if (passkey.length === 0) {
-    throw new Error(`Passkey file is empty: ${filePath}`);
-  }
-
-  return passkey;
-}
-
-async function createOrLoadPasskey(filePath = DEFAULT_MASTER_SECRET_PATH) {
-  try {
-    return await loadPasskey(filePath);
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return createPasskey(filePath);
-    }
-
-    throw error;
-  }
-}
-
-function masterSecretBytesToForkSecret(masterSecretBytes) {
-  return BigInt(`0x${bufferToHex(masterSecretBytes)}`).toString(10);
-}
-
-async function deriveMasterIdentity(masterSecret) {
+export async function deriveMasterIdentity(masterSecret) {
   const identity = await createID(masterSecret);
 
   return {
@@ -100,7 +97,7 @@ async function deriveMasterIdentity(masterSecret) {
   };
 }
 
-async function buildGroup(masterSecret, groupSecrets = DEFAULT_GROUP_SECRETS) {
+export async function buildGroup(masterSecret, groupSecrets = DEFAULT_GROUP_SECRETS) {
   const members = [];
   const normalizedSecrets = [...groupSecrets];
 
@@ -126,7 +123,7 @@ async function buildGroup(masterSecret, groupSecrets = DEFAULT_GROUP_SECRETS) {
   };
 }
 
-async function createRegistryGroup(groupSecrets = DEFAULT_GROUP_SECRETS) {
+export async function createRegistryGroup(groupSecrets = DEFAULT_GROUP_SECRETS) {
   const members = [];
 
   for (const secret of groupSecrets) {
@@ -143,7 +140,7 @@ async function createRegistryGroup(groupSecrets = DEFAULT_GROUP_SECRETS) {
   };
 }
 
-async function deriveChildCredential(masterSecret, serviceName) {
+export async function deriveChildCredential(masterSecret, serviceName) {
   const childSecretKey = deriveChildSecretKey(masterSecret, serviceName, 100);
   const childPublicKeyPoint = await deriveChildPublicKey(childSecretKey);
   const spk = await createSPK(masterSecret, serviceName);
@@ -156,9 +153,21 @@ async function deriveChildCredential(masterSecret, serviceName) {
   };
 }
 
-async function createRegistrationPayload(masterSecret, serviceName, challenge, groupContext) {
+export async function createRegistrationPayload(
+  masterSecret,
+  serviceName,
+  challenge,
+  groupContext,
+  options = {}
+) {
   const spk = await createSPK(masterSecret, serviceName);
-  const proof = await proveMem(masterSecret, groupContext.group, serviceName, challenge);
+  const proof = await proveMem(
+    masterSecret,
+    groupContext.group,
+    serviceName,
+    challenge,
+    options.snarkArtifacts
+  );
   const verified = await verifyMem(proof, groupContext.group, serviceName, challenge);
   const nullifier = proof.nullifier.toString();
 
@@ -175,7 +184,7 @@ async function createRegistrationPayload(masterSecret, serviceName, challenge, g
   };
 }
 
-async function createLoginPayload(masterSecret, serviceName, challenge) {
+export async function createLoginPayload(masterSecret, serviceName, challenge) {
   const spk = await createSPK(masterSecret, serviceName);
   const signature = await authProof(masterSecret, challenge, serviceName);
   const verified = await authVerify(spk, signature, challenge);
@@ -192,7 +201,7 @@ async function createLoginPayload(masterSecret, serviceName, challenge) {
   };
 }
 
-async function verifyRegistrationPayload(payload, options = {}) {
+export async function verifyRegistrationPayload(payload, options = {}) {
   const serviceName = options.serviceName || payload.serviceName;
   const challenge = options.challenge || payload.challenge;
   const registryGroup = options.groupContext || await createRegistryGroup(options.groupSecrets);
@@ -222,7 +231,7 @@ async function verifyRegistrationPayload(payload, options = {}) {
   return verifyMem(payload.proof, registryGroup.group, serviceName, challenge);
 }
 
-async function verifyLoginPayload(payload, options = {}) {
+export async function verifyLoginPayload(payload, options = {}) {
   const challenge = options.challenge || payload.challenge;
   const expectedPublicKey = options.expectedSpkPublicKey || payload.spkPublicKey;
   const expectedCommitment = options.expectedSpkCommitment;
@@ -253,14 +262,16 @@ async function verifyLoginPayload(payload, options = {}) {
   );
 }
 
-async function runLogicExperiment(options = {}) {
-  const passkeyPath = options.passkeyPath || DEFAULT_MASTER_SECRET_PATH;
-  const passkeyBytes = options.passkeyBytes || await createOrLoadPasskey(passkeyPath);
-  const masterSecret = options.masterSecret || masterSecretBytesToForkSecret(passkeyBytes);
+export async function runBrowserLogicExperiment(options = {}) {
+  const masterSecret = options.masterSecret;
+
+  if (!masterSecret) {
+    throw new Error("runBrowserLogicExperiment requires a masterSecret");
+  }
+
   const serviceName = options.serviceName || DEFAULT_SERVICE_NAME;
   const registrationChallenge = options.registrationChallenge || DEFAULT_REGISTRATION_CHALLENGE;
   const loginChallenge = options.loginChallenge || DEFAULT_LOGIN_CHALLENGE;
-
   const masterIdentity = await deriveMasterIdentity(masterSecret);
   const groupContext = await buildGroup(masterSecret, options.groupSecrets);
   const childCredential = await deriveChildCredential(masterSecret, serviceName);
@@ -268,7 +279,8 @@ async function runLogicExperiment(options = {}) {
     masterSecret,
     serviceName,
     registrationChallenge,
-    groupContext
+    groupContext,
+    { snarkArtifacts: options.snarkArtifacts }
   );
   const loginPayload = await createLoginPayload(masterSecret, serviceName, loginChallenge);
 
@@ -282,45 +294,30 @@ async function runLogicExperiment(options = {}) {
   };
 }
 
-function toJsonSafe(value) {
-  if (typeof value === "bigint") {
-    return value.toString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(toJsonSafe);
-  }
-
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, toJsonSafe(entry)])
-    );
-  }
-
-  return value;
-}
-
-module.exports = {
+const browserCore = {
   DEFAULT_GROUP_SECRETS,
   DEFAULT_LOGIN_CHALLENGE,
-  DEFAULT_MASTER_SECRET_PATH,
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
+  authProof,
+  authVerify,
   buildGroup,
-  createRegistryGroup,
+  convertMessage,
+  createID,
   createLoginPayload,
-  createOrLoadPasskey,
-  createPasskey,
+  createRegistryGroup,
   createRegistrationPayload,
+  createSPK,
   deriveChildCredential,
+  deriveChildPublicKey,
+  deriveChildSecretKey,
   deriveMasterIdentity,
-  hexToBuffer,
-  loadPasskey,
-  masterSecretBytesToForkSecret,
   parsePublicKeyString,
-  runLogicExperiment,
-  terminateProofWorkers,
-  toJsonSafe,
+  proveMem,
+  runBrowserLogicExperiment,
   verifyLoginPayload,
+  verifyMem,
   verifyRegistrationPayload
 };
+
+export default browserCore;

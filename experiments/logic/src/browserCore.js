@@ -1,22 +1,12 @@
 "use strict";
 
-const crypto = require("node:crypto");
-const fs = require("node:fs/promises");
-const path = require("node:path");
-const { getCurveFromName } = require("ffjavascript");
 const { Group } = require("@semaphore-protocol/group");
-const {
-  authProof,
-  authVerify,
-  createID,
-  createSPK,
-  deriveChildPublicKey,
-  deriveChildSecretKey,
-  proveMem,
-  verifyMem
-} = require("./forkReference");
+const { Identity } = require("@semaphore-protocol/identity");
+const { buildBabyjub } = require("circomlibjs");
+const { generateProof, verifyProof } = require("@semaphore-protocol/proof");
+const { encodeBytes32String, toBigInt } = require("ethers");
+const { poseidon3 } = require("poseidon-lite");
 
-const DEFAULT_MASTER_SECRET_PATH = path.join(__dirname, "..", "fixtures", "master-secret.bin");
 const DEFAULT_SERVICE_NAME = "demo.service.local";
 const DEFAULT_REGISTRATION_CHALLENGE = "register-demo-challenge";
 const DEFAULT_LOGIN_CHALLENGE = "login-demo-challenge";
@@ -27,21 +17,63 @@ const DEFAULT_GROUP_SECRETS = [
   "44444444444444444444444444444444"
 ];
 
-function randomMasterSecretBytes() {
-  return crypto.randomBytes(32);
+function convertMessage(message) {
+  try {
+    return toBigInt(message);
+  } catch (error) {
+    return toBigInt(encodeBytes32String(message));
+  }
 }
 
-function bufferToHex(buffer) {
-  return Buffer.from(buffer).toString("hex");
+async function createID(masterSecret) {
+  return new Identity(masterSecret);
 }
 
-function hexToBuffer(hex) {
-  return Buffer.from(hex, "hex");
+function deriveChildSecretKey(masterSecret, serviceName, count = 100) {
+  const convertedName = convertMessage(serviceName);
+  return poseidon3([masterSecret[1], convertedName, count]);
 }
 
-async function terminateProofWorkers() {
-  const curve = await getCurveFromName("bn128");
-  await curve.terminate();
+async function deriveChildPublicKey(childSecretKey) {
+  const babyJub = await buildBabyjub();
+  const field = babyJub.F;
+  const baseG = [
+    field.e("5299619240641551281634865583518297030282874472190772894086521144482721001553"),
+    field.e("16950150798460657717958625567821834550301663161624707787222815936182638968203")
+  ];
+
+  return babyJub.addPoint(
+    babyJub.Base8,
+    babyJub.mulPointEscalar(baseG, childSecretKey)
+  );
+}
+
+async function createSPK(masterSecret, serviceName) {
+  const childSecretKey = deriveChildSecretKey(masterSecret, serviceName, 100);
+  return new Identity(childSecretKey.toString());
+}
+
+async function authProof(masterSecret, challenge, serviceName) {
+  const spk = await createSPK(masterSecret, serviceName);
+  return spk.signMessage(challenge);
+}
+
+async function authVerify(spk, signature, challenge) {
+  return Identity.verifySignature(challenge, signature, spk.publicKey);
+}
+
+async function proveMem(masterSecret, group, serviceName, challenge, snarkArtifacts) {
+  const identity = new Identity(masterSecret);
+  return generateProof(identity, group, challenge, serviceName, 2, snarkArtifacts);
+}
+
+async function verifyMem(proof, group, serviceName, challenge) {
+  const isValid = await verifyProof(proof);
+  const checkRoot = proof.merkleTreeRoot === group.root.toString();
+  const checkMessage = proof.message === convertMessage(challenge).toString();
+  const checkScope = proof.scope === convertMessage(serviceName).toString();
+
+  return isValid && checkRoot && checkMessage && checkScope;
 }
 
 function parsePublicKeyString(publicKey) {
@@ -54,39 +86,6 @@ function parsePublicKeyString(publicKey) {
   }
 
   return publicKey.split(",").map((value) => BigInt(value.trim()));
-}
-
-async function createPasskey(filePath) {
-  const passkey = randomMasterSecretBytes();
-  await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, passkey);
-  return passkey;
-}
-
-async function loadPasskey(filePath) {
-  const passkey = await fs.readFile(filePath);
-
-  if (passkey.length === 0) {
-    throw new Error(`Passkey file is empty: ${filePath}`);
-  }
-
-  return passkey;
-}
-
-async function createOrLoadPasskey(filePath = DEFAULT_MASTER_SECRET_PATH) {
-  try {
-    return await loadPasskey(filePath);
-  } catch (error) {
-    if (error && error.code === "ENOENT") {
-      return createPasskey(filePath);
-    }
-
-    throw error;
-  }
-}
-
-function masterSecretBytesToForkSecret(masterSecretBytes) {
-  return BigInt(`0x${bufferToHex(masterSecretBytes)}`).toString(10);
 }
 
 async function deriveMasterIdentity(masterSecret) {
@@ -156,9 +155,21 @@ async function deriveChildCredential(masterSecret, serviceName) {
   };
 }
 
-async function createRegistrationPayload(masterSecret, serviceName, challenge, groupContext) {
+async function createRegistrationPayload(
+  masterSecret,
+  serviceName,
+  challenge,
+  groupContext,
+  options = {}
+) {
   const spk = await createSPK(masterSecret, serviceName);
-  const proof = await proveMem(masterSecret, groupContext.group, serviceName, challenge);
+  const proof = await proveMem(
+    masterSecret,
+    groupContext.group,
+    serviceName,
+    challenge,
+    options.snarkArtifacts
+  );
   const verified = await verifyMem(proof, groupContext.group, serviceName, challenge);
   const nullifier = proof.nullifier.toString();
 
@@ -253,14 +264,16 @@ async function verifyLoginPayload(payload, options = {}) {
   );
 }
 
-async function runLogicExperiment(options = {}) {
-  const passkeyPath = options.passkeyPath || DEFAULT_MASTER_SECRET_PATH;
-  const passkeyBytes = options.passkeyBytes || await createOrLoadPasskey(passkeyPath);
-  const masterSecret = options.masterSecret || masterSecretBytesToForkSecret(passkeyBytes);
+async function runBrowserLogicExperiment(options = {}) {
+  const masterSecret = options.masterSecret;
+
+  if (!masterSecret) {
+    throw new Error("runBrowserLogicExperiment requires a masterSecret");
+  }
+
   const serviceName = options.serviceName || DEFAULT_SERVICE_NAME;
   const registrationChallenge = options.registrationChallenge || DEFAULT_REGISTRATION_CHALLENGE;
   const loginChallenge = options.loginChallenge || DEFAULT_LOGIN_CHALLENGE;
-
   const masterIdentity = await deriveMasterIdentity(masterSecret);
   const groupContext = await buildGroup(masterSecret, options.groupSecrets);
   const childCredential = await deriveChildCredential(masterSecret, serviceName);
@@ -268,7 +281,8 @@ async function runLogicExperiment(options = {}) {
     masterSecret,
     serviceName,
     registrationChallenge,
-    groupContext
+    groupContext,
+    { snarkArtifacts: options.snarkArtifacts }
   );
   const loginPayload = await createLoginPayload(masterSecret, serviceName, loginChallenge);
 
@@ -282,45 +296,28 @@ async function runLogicExperiment(options = {}) {
   };
 }
 
-function toJsonSafe(value) {
-  if (typeof value === "bigint") {
-    return value.toString();
-  }
-
-  if (Array.isArray(value)) {
-    return value.map(toJsonSafe);
-  }
-
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, toJsonSafe(entry)])
-    );
-  }
-
-  return value;
-}
-
 module.exports = {
   DEFAULT_GROUP_SECRETS,
   DEFAULT_LOGIN_CHALLENGE,
-  DEFAULT_MASTER_SECRET_PATH,
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
+  authProof,
+  authVerify,
   buildGroup,
-  createRegistryGroup,
+  convertMessage,
+  createID,
   createLoginPayload,
-  createOrLoadPasskey,
-  createPasskey,
+  createRegistryGroup,
   createRegistrationPayload,
+  createSPK,
   deriveChildCredential,
+  deriveChildPublicKey,
+  deriveChildSecretKey,
   deriveMasterIdentity,
-  hexToBuffer,
-  loadPasskey,
-  masterSecretBytesToForkSecret,
   parsePublicKeyString,
-  runLogicExperiment,
-  terminateProofWorkers,
-  toJsonSafe,
+  proveMem,
+  runBrowserLogicExperiment,
   verifyLoginPayload,
+  verifyMem,
   verifyRegistrationPayload
 };
