@@ -23,6 +23,7 @@ export default function App() {
   const [registrationChallenge, setRegistrationChallenge] = useState(DEFAULT_REGISTRATION_CHALLENGE);
   const [loginChallenge, setLoginChallenge] = useState(DEFAULT_LOGIN_CHALLENGE);
   const [identityState, setIdentityState] = useState(null);
+  const [childCredential, setChildCredential] = useState(null);
   const [registrationPayload, setRegistrationPayload] = useState(null);
   const [loginPayload, setLoginPayload] = useState(null);
   const [error, setError] = useState("");
@@ -62,6 +63,7 @@ export default function App() {
         masterSecret: result.masterSecret,
         masterIdentity: result.masterIdentity
       });
+      setChildCredential(result.childCredential);
 
       if (target === "registration") {
         setRegistrationPayload(result.registrationPayload);
@@ -80,8 +82,9 @@ export default function App() {
             U2SSO vault experiment
           </h1>
           <p className="mt-3 text-sm leading-6 text-ink/75">
-            This popup reuses the logic experiment to create or load one master secret and derive
-            service-scoped proof payloads inside the extension runtime.
+            This popup creates or loads one master secret, derives a service-scoped child public
+            key credential, builds the signup proof payload, and builds the login signature payload
+            inside the extension runtime.
           </p>
 
           <div className="mt-5 space-y-4">
@@ -146,8 +149,9 @@ export default function App() {
 
         <div className="mt-4 space-y-4">
           <JsonPanel label="Identity" value={identityState} />
-          <JsonPanel label="Registration payload" value={registrationPayload} />
-          <JsonPanel label="Login payload" value={loginPayload} />
+          <JsonPanel label="Child credential" value={childCredential} />
+          <JsonPanel label="Registration proof payload" value={registrationPayload} />
+          <JsonPanel label="Login signature payload" value={loginPayload} />
         </div>
       </div>
     </main>

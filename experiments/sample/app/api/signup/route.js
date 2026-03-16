@@ -8,11 +8,11 @@ export async function POST(request) {
     console.log("[u2sso-sample][route] POST /api/signup received", {
       challengeId: body.challengeId,
       serviceName: body.serviceName,
-      username: body.username
+      spkPublicKey: body.registrationPayload?.spkPublicKey
     });
     const result = await demoService.registerAccount(body);
     console.log("[u2sso-sample][route] POST /api/signup success", {
-      username: result.username
+      spkPublicKey: result.spkPublicKey
     });
     return Response.json({
       account: result,

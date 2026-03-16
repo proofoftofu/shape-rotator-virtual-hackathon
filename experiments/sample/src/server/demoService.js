@@ -108,17 +108,13 @@ async function createDemoExtensionPayload(flow, challenge, serviceName = DEMO_SE
 async function registerAccount({
   challengeId,
   registrationPayload,
-  serviceName = DEMO_SERVICE_NAME,
-  username
+  serviceName = DEMO_SERVICE_NAME
 }) {
-  if (!username) {
-    throw new Error("Username is required");
-  }
-
   console.log("[u2sso-sample][server] registerAccount start", {
     challengeId,
     serviceName,
-    username
+    spkCommitment: registrationPayload?.spkCommitment,
+    spkPublicKey: registrationPayload?.spkPublicKey
   });
 
   const challengeEntry = getChallengeEntry(
@@ -149,27 +145,32 @@ async function registerAccount({
   markChallengeUsed(challengeEntry);
 
   const nullifierKey = `${serviceName}:${registrationPayload.nullifier}`;
+  const accountKey = `${serviceName}:${registrationPayload.spkPublicKey}`;
 
   if (store.nullifiers.has(nullifierKey)) {
     throw new Error("Nullifier already registered for this service");
   }
 
+  if (store.accounts.has(accountKey)) {
+    throw new Error("Child public key already registered for this service");
+  }
+
   const account = {
+    accountKey,
     createdAt: Date.now(),
     nullifier: registrationPayload.nullifier,
     serviceName,
     spkCommitment: registrationPayload.spkCommitment,
-    spkPublicKey: registrationPayload.spkPublicKey,
-    username
+    spkPublicKey: registrationPayload.spkPublicKey
   };
 
-  store.accounts.set(username, account);
-  store.nullifiers.set(nullifierKey, username);
+  store.accounts.set(accountKey, account);
+  store.nullifiers.set(nullifierKey, accountKey);
 
   console.log("[u2sso-sample][server] registerAccount success", {
     challengeId,
     serviceName,
-    username
+    spkPublicKey: account.spkPublicKey
   });
 
   return account;
@@ -178,17 +179,12 @@ async function registerAccount({
 async function loginAccount({
   challengeId,
   loginPayload,
-  serviceName = DEMO_SERVICE_NAME,
-  username
+  serviceName = DEMO_SERVICE_NAME
 }) {
-  if (!username) {
-    throw new Error("Username is required");
-  }
-
   console.log("[u2sso-sample][server] loginAccount start", {
     challengeId,
     serviceName,
-    username
+    spkPublicKey: loginPayload?.spkPublicKey
   });
 
   const challengeEntry = getChallengeEntry(
@@ -198,10 +194,11 @@ async function loginAccount({
     loginPayload.challenge
   );
 
-  const account = store.accounts.get(username);
+  const accountKey = `${serviceName}:${loginPayload.spkPublicKey}`;
+  const account = store.accounts.get(accountKey);
 
   if (!account) {
-    throw new Error("Unknown account");
+    throw new Error("Unknown child public key");
   }
 
   console.log("[u2sso-sample][server] loginAccount using in-process verification");
@@ -219,15 +216,17 @@ async function loginAccount({
 
   const sessionToken = crypto.randomUUID();
   store.sessions.set(sessionToken, {
+    accountKey,
     createdAt: Date.now(),
     serviceName,
-    username
+    spkPublicKey: account.spkPublicKey
   });
 
   return {
+    accountKey,
     serviceName,
     sessionToken,
-    username
+    spkPublicKey: account.spkPublicKey
   };
 }
 

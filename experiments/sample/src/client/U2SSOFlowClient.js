@@ -9,7 +9,6 @@ export default function U2SSOFlowClient({ flow }) {
   const [payload, setPayload] = useState("");
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState("");
-  const [username, setUsername] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -67,17 +66,10 @@ export default function U2SSOFlowClient({ flow }) {
     console.log("[u2sso-sample] submit button clicked", {
       challengeReady: Boolean(challengeData),
       flow,
-      hasPayload: Boolean(payload),
-      username
+      hasPayload: Boolean(payload)
     });
 
     if (!challengeData) {
-      return;
-    }
-
-    if (!username) {
-      setStatus("Username is required.");
-      setStatusTone("error");
       return;
     }
 
@@ -95,7 +87,6 @@ export default function U2SSOFlowClient({ flow }) {
       body: JSON.stringify({
         challengeId: challengeData.challengeId,
         serviceName: challengeData.serviceName,
-        username,
         [flow === "signup" ? "registrationPayload" : "loginPayload"]: parsedPayload
       }),
       headers: {
@@ -128,8 +119,8 @@ export default function U2SSOFlowClient({ flow }) {
         <p className="meta">{flow === "signup" ? "Signup" : "Login"} flow</p>
         <h1>{flow === "signup" ? "Sign up with U2SSO" : "Log in with U2SSO"}</h1>
         <p>
-          This page requests signup and login payloads from the extension and submits them to the
-          server verification flow.
+          This page requests proof and signature payloads from the extension, registers the child
+          public key at signup, and logs in by verifying the child public key signature.
         </p>
         <div className="links">
           <Link className="linkButton secondary" href={flow === "signup" ? "/login" : "/signup"}>
@@ -151,16 +142,6 @@ export default function U2SSOFlowClient({ flow }) {
             <br />
             Service: {challengeData?.serviceName || "loading"}
           </p>
-
-          <div className="formRow">
-            <label htmlFor="username">Username</label>
-            <input
-              id="username"
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder="alice"
-              value={username}
-            />
-          </div>
 
           <div className="stack">
             <button

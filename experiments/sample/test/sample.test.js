@@ -35,12 +35,11 @@ test("signup verification accepts a real registration payload from the shared lo
   const account = await registerAccount({
     challengeId: signupChallenge.challengeId,
     registrationPayload: extensionResult.registrationPayload,
-    serviceName: DEMO_SERVICE_NAME,
-    username: "alice"
+    serviceName: DEMO_SERVICE_NAME
   });
 
-  assert.equal(account.username, "alice");
   assert.equal(account.serviceName, DEMO_SERVICE_NAME);
+  assert.equal(account.spkPublicKey, extensionResult.registrationPayload.spkPublicKey);
   assert.equal(typeof account.nullifier, "string");
 });
 
@@ -71,8 +70,7 @@ test("login verification issues a session after a valid signup", async () => {
   await registerAccount({
     challengeId: signupChallenge.challengeId,
     registrationPayload: signupPayload.registrationPayload,
-    serviceName: DEMO_SERVICE_NAME,
-    username: "alice"
+    serviceName: DEMO_SERVICE_NAME
   });
 
   const loginChallenge = await issueChallenge("login");
@@ -85,12 +83,11 @@ test("login verification issues a session after a valid signup", async () => {
   const session = await loginAccount({
     challengeId: loginChallenge.challengeId,
     loginPayload: loginPayload.loginPayload,
-    serviceName: DEMO_SERVICE_NAME,
-    username: "alice"
+    serviceName: DEMO_SERVICE_NAME
   });
 
-  assert.equal(session.username, "alice");
   assert.equal(session.serviceName, DEMO_SERVICE_NAME);
+  assert.equal(session.spkPublicKey, loginPayload.loginPayload.spkPublicKey);
   assert.equal(typeof session.sessionToken, "string");
 });
 
@@ -105,8 +102,7 @@ test("signup rejects a duplicate nullifier for the same service", async () => {
   await registerAccount({
     challengeId: firstChallenge.challengeId,
     registrationPayload: firstPayload.registrationPayload,
-    serviceName: DEMO_SERVICE_NAME,
-    username: "alice"
+    serviceName: DEMO_SERVICE_NAME
   });
 
   const secondChallenge = await issueChallenge("signup");
@@ -120,8 +116,7 @@ test("signup rejects a duplicate nullifier for the same service", async () => {
     registerAccount({
       challengeId: secondChallenge.challengeId,
       registrationPayload: secondPayload.registrationPayload,
-      serviceName: DEMO_SERVICE_NAME,
-      username: "bob"
+      serviceName: DEMO_SERVICE_NAME
     }),
     /Nullifier already registered/
   );
@@ -138,8 +133,7 @@ test("login rejects a tampered signature payload", async () => {
   await registerAccount({
     challengeId: signupChallenge.challengeId,
     registrationPayload: signupPayload.registrationPayload,
-    serviceName: DEMO_SERVICE_NAME,
-    username: "alice"
+    serviceName: DEMO_SERVICE_NAME
   });
 
   const loginChallenge = await issueChallenge("login");
@@ -160,8 +154,7 @@ test("login rejects a tampered signature payload", async () => {
     loginAccount({
       challengeId: loginChallenge.challengeId,
       loginPayload: tamperedPayload,
-      serviceName: DEMO_SERVICE_NAME,
-      username: "alice"
+      serviceName: DEMO_SERVICE_NAME
     }),
     /Login signature verification failed/
   );
