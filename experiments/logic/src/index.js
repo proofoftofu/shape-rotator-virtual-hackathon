@@ -233,7 +233,22 @@ async function verifyRegistrationPayload(payload, options = {}) {
     return false;
   }
 
-  return verifyMem(payload.proof, registryGroup.group, serviceName, challenge);
+  console.log("[u2sso-logic] verifyRegistrationPayload calling verifyMem", {
+    challenge,
+    groupRoot: registryGroup.group.root.toString(),
+    merkleTreeRoot: payload.proof?.merkleTreeRoot,
+    nullifier: payload.proof?.nullifier,
+    scope: payload.proof?.scope,
+    serviceName
+  });
+
+  const verified = await verifyMem(payload.proof, registryGroup.group, serviceName, challenge);
+
+  console.log("[u2sso-logic] verifyRegistrationPayload verifyMem result", {
+    verified
+  });
+
+  return verified;
 }
 
 async function verifyLoginPayload(payload, options = {}) {

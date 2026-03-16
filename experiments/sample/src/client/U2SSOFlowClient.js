@@ -64,6 +64,13 @@ export default function U2SSOFlowClient({ flow }) {
   }
 
   async function submitFlow() {
+    console.log("[u2sso-sample] submit button clicked", {
+      challengeReady: Boolean(challengeData),
+      flow,
+      hasPayload: Boolean(payload),
+      username
+    });
+
     if (!challengeData) {
       return;
     }
@@ -97,6 +104,12 @@ export default function U2SSOFlowClient({ flow }) {
       method: "POST"
     });
     const body = await response.json();
+    console.log("[u2sso-sample] server response received", {
+      body,
+      flow,
+      ok: response.ok,
+      status: response.status
+    });
 
     if (!response.ok) {
       setStatus(body.error || "Flow failed");
@@ -104,6 +117,7 @@ export default function U2SSOFlowClient({ flow }) {
       return;
     }
 
+    console.log("[u2sso-sample] submit to server succeeded", body);
     setStatus(JSON.stringify(body, null, 2));
     setStatusTone("success");
   }

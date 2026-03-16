@@ -52,7 +52,7 @@ async function issueChallenge(flow, serviceName = DEMO_SERVICE_NAME) {
   };
 }
 
-function consumeChallenge(challengeId, flow, serviceName, challenge) {
+function getChallengeEntry(challengeId, flow, serviceName, challenge) {
   const entry = store.challenges.get(challengeId);
 
   if (!entry) {
@@ -75,8 +75,11 @@ function consumeChallenge(challengeId, flow, serviceName, challenge) {
     throw new Error("Challenge mismatch");
   }
 
-  entry.used = true;
   return entry;
+}
+
+function markChallengeUsed(entry) {
+  entry.used = true;
 }
 
 async function createDemoExtensionPayload(flow, challenge, serviceName = DEMO_SERVICE_NAME) {
@@ -111,9 +114,26 @@ async function registerAccount({
     throw new Error("Username is required");
   }
 
-  consumeChallenge(challengeId, "signup", serviceName, registrationPayload.challenge);
+  console.log("[u2sso-sample][server] registerAccount start", {
+    challengeId,
+    serviceName,
+    username
+  });
+
+  const challengeEntry = getChallengeEntry(
+    challengeId,
+    "signup",
+    serviceName,
+    registrationPayload.challenge
+  );
 
   const registryGroup = await getRegistryGroup();
+  console.log("[u2sso-sample][server] registerAccount verifying payload", {
+    challengeId,
+    groupRoot: registryGroup.group.root.toString(),
+    nullifier: registrationPayload.nullifier,
+    spkCommitment: registrationPayload.spkCommitment
+  });
   const isValid = await verifyRegistrationPayload(registrationPayload, {
     challenge: registrationPayload.challenge,
     groupContext: registryGroup,
@@ -123,6 +143,8 @@ async function registerAccount({
   if (!isValid) {
     throw new Error("Registration proof verification failed");
   }
+
+  markChallengeUsed(challengeEntry);
 
   const nullifierKey = `${serviceName}:${registrationPayload.nullifier}`;
 
@@ -142,6 +164,12 @@ async function registerAccount({
   store.accounts.set(username, account);
   store.nullifiers.set(nullifierKey, username);
 
+  console.log("[u2sso-sample][server] registerAccount success", {
+    challengeId,
+    serviceName,
+    username
+  });
+
   return account;
 }
 
@@ -155,7 +183,18 @@ async function loginAccount({
     throw new Error("Username is required");
   }
 
-  consumeChallenge(challengeId, "login", serviceName, loginPayload.challenge);
+  console.log("[u2sso-sample][server] loginAccount start", {
+    challengeId,
+    serviceName,
+    username
+  });
+
+  const challengeEntry = getChallengeEntry(
+    challengeId,
+    "login",
+    serviceName,
+    loginPayload.challenge
+  );
 
   const account = store.accounts.get(username);
 
@@ -172,6 +211,8 @@ async function loginAccount({
   if (!isValid) {
     throw new Error("Login signature verification failed");
   }
+
+  markChallengeUsed(challengeEntry);
 
   const sessionToken = crypto.randomUUID();
   store.sessions.set(sessionToken, {

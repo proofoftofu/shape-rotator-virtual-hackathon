@@ -1,4 +1,9 @@
-import { runExtensionExperiment } from "./experimentController.js";
+import {
+  DEFAULT_GROUP_SECRETS,
+  DEMO_EXTENSION_MASTER_SECRET,
+  loadSnarkArtifactBytes,
+  runExtensionExperiment
+} from "./experimentController.js";
 
 const REQUEST_SOURCE = "u2sso-sample";
 const REQUEST_TYPE = "u2sso:request";
@@ -26,8 +31,10 @@ export async function createExtensionResponse(message, options = {}) {
   }
 
   const runExperiment = options.runExtensionExperimentImpl || runExtensionExperiment;
-  const result = await runExperiment({
+  const experimentOptions = {
     ...options.experimentOptions,
+    groupSecrets: DEFAULT_GROUP_SECRETS,
+    masterSecret: DEMO_EXTENSION_MASTER_SECRET,
     serviceName: message.serviceName,
     registrationChallenge: message.flow === "signup"
       ? message.challenge
@@ -35,7 +42,15 @@ export async function createExtensionResponse(message, options = {}) {
     loginChallenge: message.flow === "login"
       ? message.challenge
       : options.experimentOptions && options.experimentOptions.loginChallenge
-  });
+  };
+
+  if (!experimentOptions.snarkArtifacts && !options.runExtensionExperimentImpl) {
+    experimentOptions.snarkArtifacts = await loadSnarkArtifactBytes(
+      options.experimentOptions?.runtimeBaseUrl
+    );
+  }
+
+  const result = await runExperiment(experimentOptions);
 
   return {
     source: RESPONSE_SOURCE,

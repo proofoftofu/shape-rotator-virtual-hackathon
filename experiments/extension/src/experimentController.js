@@ -13,6 +13,7 @@ const {
 } = logicBrowserCore;
 
 const STORAGE_KEY = "u2sso.masterSecretHex";
+const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
 
 function bytesToHex(bytes) {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
@@ -100,6 +101,31 @@ function resolveSnarkArtifacts(runtimeBaseUrl = "") {
   };
 }
 
+async function fetchArtifactBytes(url) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch artifact: ${url} (${response.status})`);
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+
+  if (bytes.length < 4) {
+    throw new Error(`Artifact too small: ${url}`);
+  }
+
+  return bytes;
+}
+
+export async function loadSnarkArtifactBytes(runtimeBaseUrl = "") {
+  const resolved = resolveSnarkArtifacts(runtimeBaseUrl);
+
+  return {
+    wasm: await fetchArtifactBytes(resolved.wasm),
+    zkey: await fetchArtifactBytes(resolved.zkey)
+  };
+}
+
 export async function createOrLoadIdentity(options = {}) {
   const storage = options.storage || createBrowserStorage();
   const stored = await storage.get(STORAGE_KEY);
@@ -126,7 +152,14 @@ export async function createOrLoadIdentity(options = {}) {
 }
 
 export async function runExtensionExperiment(options = {}) {
-  const identity = await createOrLoadIdentity(options);
+  const identity = options.masterSecret
+    ? {
+        created: false,
+        masterSecretHex: options.masterSecretHex || "",
+        masterSecret: options.masterSecret,
+        masterIdentity: await deriveMasterIdentity(options.masterSecret)
+      }
+    : await createOrLoadIdentity(options);
   const serviceName = options.serviceName || DEFAULT_SERVICE_NAME;
   const registrationChallenge = options.registrationChallenge || DEFAULT_REGISTRATION_CHALLENGE;
   const loginChallenge = options.loginChallenge || DEFAULT_LOGIN_CHALLENGE;
@@ -152,6 +185,8 @@ export async function runExtensionExperiment(options = {}) {
 }
 
 export {
+  DEMO_EXTENSION_MASTER_SECRET,
+  DEFAULT_GROUP_SECRETS,
   DEFAULT_LOGIN_CHALLENGE,
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
