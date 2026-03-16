@@ -8,10 +8,12 @@ const { Group } = require("@semaphore-protocol/group");
 const {
   authProof,
   authVerify,
+  createLocalSemaphoreArtifacts,
   createID,
   createSPK,
   deriveChildPublicKey,
   deriveChildSecretKey,
+  LOCAL_SEMAPHORE_ARTIFACTS,
   proveMem,
   verifyMem
 } = require("./forkReference");
@@ -156,9 +158,21 @@ async function deriveChildCredential(masterSecret, serviceName) {
   };
 }
 
-async function createRegistrationPayload(masterSecret, serviceName, challenge, groupContext) {
+async function createRegistrationPayload(
+  masterSecret,
+  serviceName,
+  challenge,
+  groupContext,
+  options = {}
+) {
   const spk = await createSPK(masterSecret, serviceName);
-  const proof = await proveMem(masterSecret, groupContext.group, serviceName, challenge);
+  const proof = await proveMem(
+    masterSecret,
+    groupContext.group,
+    serviceName,
+    challenge,
+    options.snarkArtifacts
+  );
   const verified = await verifyMem(proof, groupContext.group, serviceName, challenge);
   const nullifier = proof.nullifier.toString();
 
@@ -268,7 +282,8 @@ async function runLogicExperiment(options = {}) {
     masterSecret,
     serviceName,
     registrationChallenge,
-    groupContext
+    groupContext,
+    { snarkArtifacts: options.snarkArtifacts }
   );
   const loginPayload = await createLoginPayload(masterSecret, serviceName, loginChallenge);
 
@@ -309,12 +324,14 @@ module.exports = {
   buildGroup,
   createRegistryGroup,
   createLoginPayload,
+  createLocalSemaphoreArtifacts,
   createOrLoadPasskey,
   createPasskey,
   createRegistrationPayload,
   deriveChildCredential,
   deriveMasterIdentity,
   hexToBuffer,
+  LOCAL_SEMAPHORE_ARTIFACTS,
   loadPasskey,
   masterSecretBytesToForkSecret,
   parsePublicKeyString,

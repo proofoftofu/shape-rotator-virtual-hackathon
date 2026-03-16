@@ -40,6 +40,7 @@ export async function createExtensionResponse(message, options = {}) {
   return {
     source: RESPONSE_SOURCE,
     flow: message.flow,
+    requestId: message.requestId,
     payload: message.flow === "signup"
       ? result.registrationPayload
       : result.loginPayload
@@ -50,19 +51,25 @@ export function createWindowMessageBridge(options = {}) {
   const targetWindow = options.targetWindow || window;
 
   async function handleMessage(event) {
-    if (event.source !== targetWindow || !isValidExtensionRequest(event.data)) {
+    if (!isValidExtensionRequest(event.data)) {
       return;
     }
 
+    console.log("[u2sso-extension] received request", event.data);
+
     try {
       const response = await createExtensionResponse(event.data, options);
+      console.log("[u2sso-extension] posting response", response);
       targetWindow.postMessage(response, "*");
     } catch (error) {
+      const responseError = error instanceof Error ? error.message : String(error);
+      console.error("[u2sso-extension] failed to create response", responseError);
       targetWindow.postMessage(
         {
           source: RESPONSE_SOURCE,
           flow: event.data.flow,
-          error: error instanceof Error ? error.message : String(error)
+          requestId: event.data.requestId,
+          error: responseError
         },
         "*"
       );
@@ -72,9 +79,11 @@ export function createWindowMessageBridge(options = {}) {
   return {
     handleMessage,
     start() {
+      console.log("[u2sso-extension] starting window message bridge");
       targetWindow.addEventListener("message", handleMessage);
     },
     stop() {
+      console.log("[u2sso-extension] stopping window message bridge");
       targetWindow.removeEventListener("message", handleMessage);
     }
   };

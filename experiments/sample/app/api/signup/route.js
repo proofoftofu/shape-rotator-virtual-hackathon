@@ -1,9 +1,9 @@
-const { registerAccount } = require("../../../src/server/demoService");
+import demoService from "../../../src/server/demoService";
 
-exports.POST = async function POST(request) {
+export async function POST(request) {
   try {
     const body = await request.json();
-    const result = await registerAccount(body);
+    const result = await demoService.registerAccount(body);
     return Response.json({
       account: result,
       ok: true
@@ -11,4 +11,4 @@ exports.POST = async function POST(request) {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 400 });
   }
-};
+}

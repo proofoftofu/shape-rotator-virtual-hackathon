@@ -1,11 +1,18 @@
 "use strict";
 
-const store = {
-  challenges: new Map(),
-  accounts: new Map(),
-  nullifiers: new Map(),
-  sessions: new Map()
-};
+const STORE_KEY = "__u2ssoDemoStore";
+
+function createStore() {
+  return {
+    challenges: new Map(),
+    accounts: new Map(),
+    nullifiers: new Map(),
+    sessions: new Map()
+  };
+}
+
+const store = globalThis[STORE_KEY] || createStore();
+globalThis[STORE_KEY] = store;
 
 function resetStore() {
   store.challenges.clear();

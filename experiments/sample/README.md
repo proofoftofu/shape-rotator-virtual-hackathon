@@ -12,6 +12,7 @@ This experiment adds a minimal Next.js sample service in `workspace/experiments/
   - enforces one nullifier per service
   - verifies login signatures against the stored service public key
   - creates an in-memory session token after successful login
+  - wires explicit Semaphore artifact paths to `workspace/experiments/logic/artifacts` so Next.js server bundling does not break proof generation
 - A browser `window.postMessage` contract for the future extension integration:
   - request: `source = "u2sso-sample"`, `type = "u2sso:request"`, `flow`, `challenge`, `serviceName`
   - response: `source = "u2sso-extension"`, `flow`, `payload`

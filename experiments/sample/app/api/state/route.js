@@ -1,5 +1,5 @@
-const { getDebugState } = require("../../../src/server/demoService");
+import demoService from "../../../src/server/demoService";
 
-exports.GET = async function GET() {
-  return Response.json(getDebugState());
-};
+export async function GET() {
+  return Response.json(demoService.getDebugState());
+}

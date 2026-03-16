@@ -6,7 +6,7 @@
   "description": "Chrome extension experiment reusing the logic experiment inside a React and Tailwind popup",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/build.mjs",
     "test": "node --test --test-force-exit"
   },
   "dependencies": {

@@ -7,10 +7,14 @@ const { buildBabyjub } = require("circomlibjs");
 const { generateProof, verifyProof } = require("@semaphore-protocol/proof");
 const { encodeBytes32String, toBigInt } = require("ethers");
 
-const LOCAL_SEMAPHORE_ARTIFACTS = {
-  wasm: path.join(__dirname, "..", "artifacts", "semaphore-2.wasm"),
-  zkey: path.join(__dirname, "..", "artifacts", "semaphore-2.zkey")
-};
+function createLocalSemaphoreArtifacts(baseDir = __dirname) {
+  return {
+    wasm: path.join(baseDir, "..", "artifacts", "semaphore-2.wasm"),
+    zkey: path.join(baseDir, "..", "artifacts", "semaphore-2.zkey")
+  };
+}
+
+const LOCAL_SEMAPHORE_ARTIFACTS = createLocalSemaphoreArtifacts();
 
 function convertMessage(message) {
   try {
@@ -57,9 +61,9 @@ async function authVerify(spk, signature, challenge) {
   return Identity.verifySignature(challenge, signature, spk.publicKey);
 }
 
-async function proveMem(masterSecret, group, serviceName, challenge) {
+async function proveMem(masterSecret, group, serviceName, challenge, snarkArtifacts = LOCAL_SEMAPHORE_ARTIFACTS) {
   const identity = new Identity(masterSecret);
-  return generateProof(identity, group, challenge, serviceName, 2, LOCAL_SEMAPHORE_ARTIFACTS);
+  return generateProof(identity, group, challenge, serviceName, 2, snarkArtifacts);
 }
 
 async function verifyMem(proof, group, serviceName, challenge) {
@@ -74,6 +78,7 @@ async function verifyMem(proof, group, serviceName, challenge) {
 module.exports = {
   authProof,
   authVerify,
+  createLocalSemaphoreArtifacts,
   convertMessage,
   createID,
   createSPK,

@@ -1,9 +1,9 @@
-const { loginAccount } = require("../../../src/server/demoService");
+import demoService from "../../../src/server/demoService";
 
-exports.POST = async function POST(request) {
+export async function POST(request) {
   try {
     const body = await request.json();
-    const result = await loginAccount(body);
+    const result = await demoService.loginAccount(body);
     return Response.json({
       ok: true,
       session: result
@@ -11,4 +11,4 @@ exports.POST = async function POST(request) {
   } catch (error) {
     return Response.json({ error: error.message }, { status: 400 });
   }
-};
+}

@@ -67,6 +67,7 @@ test("createExtensionResponse returns registration payload for signup", async ()
       type: REQUEST_TYPE,
       flow: "signup",
       challenge: "signup-challenge",
+      requestId: "req-signup",
       serviceName: "demo.service.local"
     },
     {
@@ -86,6 +87,7 @@ test("createExtensionResponse returns registration payload for signup", async ()
   assert.deepEqual(response, {
     source: RESPONSE_SOURCE,
     flow: "signup",
+    requestId: "req-signup",
     payload: {
       challenge: "signup-challenge",
       kind: "registration"
@@ -100,6 +102,7 @@ test("createExtensionResponse returns login payload for login", async () => {
       type: REQUEST_TYPE,
       flow: "login",
       challenge: "login-challenge",
+      requestId: "req-login",
       serviceName: "demo.service.local"
     },
     {
@@ -119,6 +122,7 @@ test("createExtensionResponse returns login payload for login", async () => {
   assert.deepEqual(response, {
     source: RESPONSE_SOURCE,
     flow: "login",
+    requestId: "req-login",
     payload: {
       challenge: "login-challenge",
       kind: "login"
@@ -149,6 +153,7 @@ test("window bridge responds to valid sample app requests", async () => {
       type: REQUEST_TYPE,
       flow: "signup",
       challenge: "signup-challenge",
+      requestId: "req-bridge",
       serviceName: "demo.service.local"
     },
     mockWindow
@@ -159,6 +164,7 @@ test("window bridge responds to valid sample app requests", async () => {
     {
       source: RESPONSE_SOURCE,
       flow: "signup",
+      requestId: "req-bridge",
       payload: {
         challenge: "signup-challenge",
         flow: "signup"
@@ -183,6 +189,7 @@ test("window bridge ignores messages outside the sample app contract", async () 
       type: REQUEST_TYPE,
       flow: "signup",
       challenge: "signup-challenge",
+      requestId: "req-ignore",
       serviceName: "demo.service.local"
     },
     mockWindow

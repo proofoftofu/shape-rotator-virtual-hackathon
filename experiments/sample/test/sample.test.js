@@ -2,7 +2,9 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const {
+  DEMO_SEMAPHORE_ARTIFACTS,
   DEMO_SERVICE_NAME,
   createDemoExtensionPayload,
   issueChallenge,
@@ -40,6 +42,22 @@ test("signup verification accepts a real registration payload from the shared lo
   assert.equal(account.username, "alice");
   assert.equal(account.serviceName, DEMO_SERVICE_NAME);
   assert.equal(typeof account.nullifier, "string");
+});
+
+test("demo payload generation uses explicit logic artifact paths instead of Next bundle paths", async () => {
+  assert.equal(fs.existsSync(DEMO_SEMAPHORE_ARTIFACTS.wasm), true);
+  assert.equal(fs.existsSync(DEMO_SEMAPHORE_ARTIFACTS.zkey), true);
+  assert.equal(DEMO_SEMAPHORE_ARTIFACTS.wasm.includes(".next/server"), false);
+  assert.equal(DEMO_SEMAPHORE_ARTIFACTS.zkey.includes(".next/server"), false);
+
+  const signupChallenge = await issueChallenge("signup");
+  const extensionResult = await createDemoExtensionPayload(
+    "signup",
+    signupChallenge.challenge,
+    DEMO_SERVICE_NAME
+  );
+
+  assert.equal(typeof extensionResult.registrationPayload.nullifier, "string");
 });
 
 test("login verification issues a session after a valid signup", async () => {

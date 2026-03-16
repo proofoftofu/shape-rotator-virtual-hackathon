@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const path = require("node:path");
 const {
   DEFAULT_GROUP_SECRETS,
   createRegistryGroup,
@@ -12,6 +13,10 @@ const { store } = require("./demoStore");
 
 const DEMO_SERVICE_NAME = "sample.service.local";
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
+const DEMO_SEMAPHORE_ARTIFACTS = {
+  wasm: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.wasm"),
+  zkey: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.zkey")
+};
 
 let registryGroupPromise;
 
@@ -80,7 +85,8 @@ async function createDemoExtensionPayload(flow, challenge, serviceName = DEMO_SE
     loginChallenge: challenge,
     masterSecret: DEMO_EXTENSION_MASTER_SECRET,
     registrationChallenge: challenge,
-    serviceName
+    serviceName,
+    snarkArtifacts: DEMO_SEMAPHORE_ARTIFACTS
   });
 
   return flow === "signup"
@@ -197,6 +203,7 @@ function getDebugState() {
 
 module.exports = {
   DEMO_EXTENSION_MASTER_SECRET,
+  DEMO_SEMAPHORE_ARTIFACTS,
   DEMO_SERVICE_NAME,
   createDemoExtensionPayload,
   getDebugState,

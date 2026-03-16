@@ -3,6 +3,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs/promises");
+const fsSync = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
@@ -16,7 +17,9 @@ const {
   verifyMem
 } = require("../src/forkReference");
 const {
+  LOCAL_SEMAPHORE_ARTIFACTS,
   buildGroup,
+  createLocalSemaphoreArtifacts,
   createLoginPayload,
   createPasskey,
   createRegistrationPayload,
@@ -80,6 +83,30 @@ test("registration payload verifies against the forked Semaphore membership flow
   assert.equal(payload.proof.merkleTreeRoot, referenceProof.merkleTreeRoot);
   assert.equal(payload.proof.scope, referenceProof.scope);
   assert.equal(payload.proof.message, referenceProof.message);
+});
+
+test("registration payload supports explicit Semaphore artifact paths", async () => {
+  const masterSecret = "11111111111111111111111111111111";
+  const serviceName = "demo.service.local";
+  const challenge = "register-demo-challenge";
+  const groupContext = await buildGroup(masterSecret);
+  const explicitArtifacts = createLocalSemaphoreArtifacts(path.join(__dirname, "..", "src"));
+
+  assert.equal(fsSync.existsSync(explicitArtifacts.wasm), true);
+  assert.equal(fsSync.existsSync(explicitArtifacts.zkey), true);
+  assert.equal(explicitArtifacts.wasm, LOCAL_SEMAPHORE_ARTIFACTS.wasm);
+  assert.equal(explicitArtifacts.zkey, LOCAL_SEMAPHORE_ARTIFACTS.zkey);
+
+  const payload = await createRegistrationPayload(
+    masterSecret,
+    serviceName,
+    challenge,
+    groupContext,
+    { snarkArtifacts: explicitArtifacts }
+  );
+
+  assert.equal(payload.verified, true);
+  assert.equal(typeof payload.nullifier, "string");
 });
 
 test("registration nullifier stays the same for the same master secret and service name", async () => {

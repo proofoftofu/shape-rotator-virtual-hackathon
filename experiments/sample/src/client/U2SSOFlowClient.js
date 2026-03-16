@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { requestPayloadFromExtension } from "./extensionBridge";
-import { fetchDemoPayload, requestPayloadWithFallback } from "./payloadRequest";
 
 export default function U2SSOFlowClient({ flow }) {
   const [challengeData, setChallengeData] = useState(null);
@@ -24,6 +23,7 @@ export default function U2SSOFlowClient({ flow }) {
       }
 
       if (!cancelled) {
+        console.log("[u2sso-sample] challenge loaded", body);
         setChallengeData(body);
       }
     }
@@ -41,45 +41,26 @@ export default function U2SSOFlowClient({ flow }) {
   }, [flow]);
 
   async function requestFromExtension() {
+    console.log("[u2sso-sample] request button clicked", {
+      challengeReady: Boolean(challengeData),
+      flow
+    });
+
     if (!challengeData) {
+      setStatus("Challenge is still loading. Please wait a moment and try again.");
+      setStatusTone("error");
       return;
     }
 
     try {
-      const result = await requestPayloadWithFallback(flow, challengeData, {
-        fetchDemo: fetchDemoPayload,
-        requestExtension: requestPayloadFromExtension
-      });
-      const nextPayload = result.payload;
+      const nextPayload = await requestPayloadFromExtension(flow, challengeData);
       setPayload(JSON.stringify(nextPayload, null, 2));
-      setStatus(
-        result.source === "extension"
-          ? "Extension payload received."
-          : `Extension unavailable. Demo payload generated with the shared logic experiment.\nReason: ${result.fallbackReason}`
-      );
+      setStatus("Extension payload received.");
       setStatusTone("success");
     } catch (error) {
       setStatus(error.message);
       setStatusTone("error");
     }
-  }
-
-  async function requestDemoPayload() {
-    if (!challengeData) {
-      return;
-    }
-
-    try {
-      const result = await fetchDemoPayload(flow, challengeData);
-      setPayload(JSON.stringify(result.payload, null, 2));
-    } catch (error) {
-      setStatus(error.message);
-      setStatusTone("error");
-      return;
-    }
-
-    setStatus("Demo payload generated with the shared logic experiment.");
-    setStatusTone("success");
   }
 
   async function submitFlow() {
@@ -133,8 +114,8 @@ export default function U2SSOFlowClient({ flow }) {
         <p className="meta">{flow === "signup" ? "Signup" : "Login"} flow</p>
         <h1>{flow === "signup" ? "Sign up with U2SSO" : "Log in with U2SSO"}</h1>
         <p>
-          The primary path is extension messaging. If the extension does not answer, the request
-          falls back to demo payload generation while keeping the same server verification path.
+          This page requests signup and login payloads from the extension and submits them to the
+          server verification flow.
         </p>
         <div className="links">
           <Link className="linkButton secondary" href={flow === "signup" ? "/login" : "/signup"}>
@@ -168,11 +149,16 @@ export default function U2SSOFlowClient({ flow }) {
           </div>
 
           <div className="stack">
-            <button onClick={requestFromExtension} type="button">
-              Request payload
-            </button>
-            <button className="secondary" onClick={requestDemoPayload} type="button">
-              Use demo payload
+            <button
+              onClick={() => {
+                console.log("[u2sso-sample] raw button onClick fired", { flow });
+                setStatus("Request button clicked.");
+                setStatusTone("");
+                void requestFromExtension();
+              }}
+              type="button"
+            >
+              Request from extension
             </button>
             <button onClick={submitFlow} type="button">
               Submit to server
