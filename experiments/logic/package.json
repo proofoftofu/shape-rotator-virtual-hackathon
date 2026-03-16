@@ -2,10 +2,18 @@
   "name": "u2sso-logic-experiment",
   "version": "0.1.0",
   "private": true,
-  "description": "Node.js logic experiment for the U2SSO core derivation flow",
-  "main": "src/logic.js",
+  "description": "Node.js logic experiment aligned to the forked U2SSO JS proof flow",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "node --test"
+    "start": "node cli.js",
+    "test": "node --test --test-force-exit"
+  },
+  "dependencies": {
+    "@semaphore-protocol/group": "4.0.3",
+    "@semaphore-protocol/identity": "4.0.3",
+    "@semaphore-protocol/proof": "4.0.3",
+    "circomlibjs": "^0.1.7",
+    "ethers": "6.10.0",
+    "poseidon-lite": "^0.2.0"
   }
 }

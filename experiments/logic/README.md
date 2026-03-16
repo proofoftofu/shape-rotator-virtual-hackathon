@@ -1,52 +1,65 @@
 # Logic Experiment
 
-This experiment implements the minimum U2SSO-style registration and login flow as a plain Node.js module and CLI script.
+This experiment reworks `workspace/experiments/logic` to follow the forked U2SSO sample as closely as possible in plain Node.js without introducing placeholder proof data.
 
-## Implemented
+## What Was Ported
 
-- Deterministic master secret generation from a fixed seed for repeatable local tests.
-- Master identity derivation from that master secret.
-- Service-specific child credential derivation for a fixed service name.
-- Separate registration and login payload generation with stable structured output.
-- Local automated tests using Node's built-in test runner.
+Primary references:
+
+- `forks/U2SSO/proof-of-concept/clientapp.go`
+- `forks/U2SSO/proof-of-concept/u2sso/u2ssolib.go`
+
+Supporting JS reference:
+
+- `forks/U2SSO/crypto-snark/src/index.js`
+
+Ported flow in this experiment:
+
+- passkey creation and loading as a raw 32-byte file
+- master identity derivation from that secret
+- service-specific child secret derivation using the fork JS Poseidon-based child-key logic
+- service public key creation using the fork JS `createSPK` behavior
+- registration payload generation using the fork JS Semaphore membership proof flow
+- login payload generation using the fork JS service-key signature flow
 
 ## Files
 
-- `src/logic.js`: reusable derivation and payload-generation module.
-- `index.js`: Node entry script that prints the experiment result as JSON.
-- `test/logic.test.js`: tests for output shape, determinism, service separation, and CLI output.
+- `src/forkReference.js`: direct local port of the useful fork JS primitives
+- `src/index.js`: experiment API with passkey I/O, group setup, registration payload, and login payload
+- `cli.js`: runnable entry script
+- `test/logic.test.js`: tests for passkey handling and proof-flow parity against the local fork reference port
 
 ## Run
 
 ```bash
+npm install
 npm test
 npm start
 ```
 
-You can also override defaults:
+You can override runtime inputs:
 
 ```bash
-node index.js --service-name=example.com --registration-challenge=reg-1 --login-challenge=login-1
+node cli.js --passkey-path=./fixtures/master-secret.bin --service-name=example.com --registration-challenge=register-1 --login-challenge=login-1
 ```
-
-## Output Shape
-
-The script returns:
-
-- `masterSecret`
-- `masterIdentity`
-- `serviceName`
-- `childCredential`
-- `registrationPayload`
-- `loginPayload`
 
 ## Result
 
-The minimum derivation and payload-generation flow works in plain Node.js and is testable locally.
+The current implementation uses real proof/signature logic from the forked JavaScript path. It does not use mock hashes, HMAC placeholders, or proof-shaped stand-ins.
 
-## Differences From The Original Sample
+## What Still Differs From The Fork
 
-- This experiment does not reproduce the original native `secp256k1_ringcip` membership proof flow from the Go sample.
-- This experiment also does not execute the Semaphore/snark proof stack from `forks/U2SSO/crypto-snark`.
-- Instead, it uses deterministic hash- and HMAC-based proof-equivalent payloads to validate the Node.js module structure, stable derivation flow, and registration/login payload separation.
-- That makes this suitable as a logic experiment for API shape and control flow, but not yet as a cryptographic-equivalence port of the original sample.
+- The original Go sample uses the native `secp256k1_ringcip` and Boquila C functions from `u2ssolib.go` for master identity derivation, service key derivation, registration proofs, and auth proofs.
+- This experiment cannot execute that exact Go/C path in Node.js because the original dependency chain is native and not exposed as a JavaScript library in the repo.
+- Instead, this experiment uses the fork’s existing JavaScript cryptographic path from `forks/U2SSO/crypto-snark/src/index.js`, which is based on Semaphore identities, Poseidon child-key derivation, and Semaphore membership proofs.
+- The group for registration is created locally from deterministic fixture identities rather than being loaded from the on-chain contract used by `clientapp.go`.
+
+## Equivalence Status
+
+- Relative to the forked JavaScript path in `forks/U2SSO/crypto-snark/src/index.js`: functionally equivalent for the implemented create-ID, child-credential, registration-proof, and login-proof flow.
+- Relative to the Go/C fork in `proof-of-concept/u2sso/u2ssolib.go`: only partially equivalent.
+
+## Remaining Blockers
+
+- The main blocker is the original C/Go dependency chain around `secp256k1_ringcip` and Boquila, which is not directly available as a JavaScript-callable library in this workspace.
+- The environment used for this experiment also does not expose a working `go` toolchain, which prevents validating the Node flow against the exact Go implementation in automated tests.
