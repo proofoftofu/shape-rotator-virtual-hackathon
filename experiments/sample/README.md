@@ -45,9 +45,9 @@ The default request flow now tries the real extension bridge first. If the exten
 
 ## Current Extension Status
 
-- The browser-side contract expected by the sample app is already in place.
-- The separate extension experiment is not implemented in this workspace yet, so end-to-end browser integration is still pending that experiment.
-- Once the extension is available, the sample app is ready to request signup/login payloads over `window.postMessage` without changing the server-side verification path.
+- The browser-side bridge contract expected by the sample app is implemented.
+- `workspace/experiments/extension` now exists, and the sample app can request signup/login payloads through the extension bridge over `window.postMessage`.
+- The demo fallback remains available as a backup path when the extension is unavailable or when you want to exercise the sample flow without the extension running.
 
 ## Test Instructions
 
@@ -76,7 +76,6 @@ The sample service experiment confirms that the current JavaScript U2SSO logic c
 
 ## Current Limitations
 
-- The Chrome extension experiment has not been implemented in this workspace yet, so the browser-side integration is extension-ready but still validated through the demo fallback in this repo.
 - The demo registry is an in-memory fixture group derived from `DEFAULT_GROUP_SECRETS`, not the on-chain registry from the original Go sample.
 - Account and session state are in-memory only and reset on server restart.
 - Tests verify the shared service logic and payload-selection behavior directly; they do not boot the full Next.js runtime.
