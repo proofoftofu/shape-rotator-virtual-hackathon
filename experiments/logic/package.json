@@ -1,0 +1,11 @@
+{
+  "name": "u2sso-logic-experiment",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Node.js logic experiment for the U2SSO core derivation flow",
+  "main": "src/logic.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test"
+  }
+}
