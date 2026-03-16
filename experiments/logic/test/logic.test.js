@@ -76,9 +76,53 @@ test("registration payload verifies against the forked Semaphore membership flow
   assert.equal(referenceVerified, true);
   assert.equal(payload.groupRoot, groupContext.group.root.toString());
   assert.equal(payload.spkPublicKey.length > 0, true);
+  assert.equal(payload.nullifier, referenceProof.nullifier.toString());
   assert.equal(payload.proof.merkleTreeRoot, referenceProof.merkleTreeRoot);
   assert.equal(payload.proof.scope, referenceProof.scope);
   assert.equal(payload.proof.message, referenceProof.message);
+});
+
+test("registration nullifier stays the same for the same master secret and service name", async () => {
+  const masterSecret = "11111111111111111111111111111111";
+  const serviceName = "demo.service.local";
+  const groupContext = await buildGroup(masterSecret);
+
+  const first = await createRegistrationPayload(
+    masterSecret,
+    serviceName,
+    "register-demo-challenge-1",
+    groupContext
+  );
+  const second = await createRegistrationPayload(
+    masterSecret,
+    serviceName,
+    "register-demo-challenge-2",
+    groupContext
+  );
+
+  assert.equal(first.nullifier, second.nullifier);
+  assert.equal(first.proof.nullifier.toString(), second.proof.nullifier.toString());
+});
+
+test("registration nullifier changes when the service name changes", async () => {
+  const masterSecret = "11111111111111111111111111111111";
+  const groupContext = await buildGroup(masterSecret);
+
+  const first = await createRegistrationPayload(
+    masterSecret,
+    "demo.service.local",
+    "register-demo-challenge",
+    groupContext
+  );
+  const second = await createRegistrationPayload(
+    masterSecret,
+    "another.service.local",
+    "register-demo-challenge",
+    groupContext
+  );
+
+  assert.notEqual(first.nullifier, second.nullifier);
+  assert.notEqual(first.proof.nullifier.toString(), second.proof.nullifier.toString());
 });
 
 test("login payload verifies against the forked service-key auth flow", async () => {
@@ -111,6 +155,7 @@ test("runLogicExperiment returns the required structure using the real proof flo
   assert.equal(result.masterSecret, masterSecretBytesToForkSecret(passkeyBytes));
   assert.equal(result.registrationPayload.verified, true);
   assert.equal(result.loginPayload.verified, true);
+  assert.equal(typeof result.registrationPayload.nullifier, "string");
   assert.equal(typeof result.registrationPayload.proof.merkleTreeRoot, "string");
   assert.equal(typeof result.loginPayload.signature.S, "string");
   assert.equal(Array.isArray(result.loginPayload.signature.R8), true);
@@ -131,5 +176,6 @@ test("CLI prints valid JSON for the real proof flow", async () => {
   const parsed = JSON.parse(output.stdout);
   assert.equal(parsed.registrationPayload.verified, true);
   assert.equal(parsed.loginPayload.verified, true);
+  assert.equal(typeof parsed.registrationPayload.nullifier, "string");
   assert.equal(typeof parsed.childCredential.spkPublicKey, "string");
 });

@@ -125,6 +125,7 @@ async function createRegistrationPayload(masterSecret, serviceName, challenge, g
   const spk = await createSPK(masterSecret, serviceName);
   const proof = await proveMem(masterSecret, groupContext.group, serviceName, challenge);
   const verified = await verifyMem(proof, groupContext.group, serviceName, challenge);
+  const nullifier = proof.nullifier.toString();
 
   return {
     challenge,
@@ -133,6 +134,7 @@ async function createRegistrationPayload(masterSecret, serviceName, challenge, g
     memberCommitments: groupContext.members.map((member) => member.commitment),
     spkCommitment: spk.commitment.toString(),
     spkPublicKey: spk.publicKey.toString(),
+    nullifier,
     proof,
     verified
   };
