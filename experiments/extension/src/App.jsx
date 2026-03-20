@@ -45,6 +45,7 @@ export default function App() {
   const [childCredentials, setChildCredentials] = useState([]);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
+  const [creationFx, setCreationFx] = useState(false);
   const hasServices = childCredentials.length > 0;
 
   useEffect(() => {
@@ -147,9 +148,11 @@ export default function App() {
 
   async function handleCreateOrLoadIdentity() {
     await withAction("identity", async () => {
+      setCreationFx(true);
       const result = await createOrLoadIdentity();
       setIdentityState(result);
       setHasStoredIdentity(true);
+      window.setTimeout(() => setCreationFx(false), 420);
     });
   }
 
@@ -194,7 +197,7 @@ export default function App() {
         type: "u2sso:approveRequest"
       });
       setPendingRequest(null);
-      window.setTimeout(() => window.close(), 50);
+      window.close();
     });
   }
 
@@ -242,7 +245,7 @@ export default function App() {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
-          <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+          <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl u2sso-animate-fade-up">
             <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
               Review request
             </div>
@@ -303,17 +306,19 @@ export default function App() {
             <p className="mt-3 text-sm leading-6 text-slate-300">
               Create or load your vault once, then use it across every supported service.
             </p>
-            <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)]">
+            <div className={`mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)] ${creationFx ? "u2sso-animate-vault-breath" : ""}`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Key vault</div>
+                  <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
+                    Master identity
+                  </div>
                   <div className="mt-2 font-display text-xl text-slate-100">New vault</div>
                 </div>
               </div>
               <div className="mt-5 rounded-[24px] border border-dashed border-white/10 bg-slate-950/70 px-4 py-5">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Address</div>
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Public key</div>
                 <div className="mt-2 text-sm leading-6 text-slate-200">
-                  Create a vault to reveal your key address.
+                  Create a vault to reveal your public key.
                 </div>
               </div>
             </div>
@@ -379,21 +384,26 @@ export default function App() {
             </div>
 
             {activeTab === "main" ? (
-              <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
+              <div className={`mt-6 rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,19,27,0.94),rgba(7,11,16,0.96))] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.28)] ${creationFx ? "u2sso-animate-fade-up" : ""}`}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">Vault key</p>
-                    <h2 className="mt-2 font-display text-2xl text-slate-100">Active vault</h2>
+                    <p className="text-[11px] uppercase tracking-[0.35em] text-cyan-300/80">
+                      Master identity
+                    </p>
+                    <h2 className="mt-2 font-display text-2xl text-slate-100">Vault root</h2>
                   </div>
                 </div>
-                <div className="mt-5 rounded-[24px] border border-white/10 bg-slate-950/70 px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Address</div>
+                <div className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.05] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                    Public key
+                  </div>
                   <div className="mt-3 break-all font-mono text-sm leading-6 text-slate-100">
                     {identityState?.masterIdentity?.publicKey?.join(",")}
                   </div>
                 </div>
                 <p className="mt-4 text-sm leading-6 text-slate-300">
-                  Your vault key is the root of every service identity card.
+                  This is the root identity stored in your vault. It anchors every service entry
+                  below.
                 </p>
                 <div className="mt-5 grid grid-cols-1 gap-3">
                   <button
@@ -413,17 +423,18 @@ export default function App() {
                   Approved signups create one service identity card here.
                 </p>
                 {childCredentials.length > 0 ? (
-                  childCredentials.map((entry) => (
+                  childCredentials.map((entry, index) => (
                     <div
-                      className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,24,32,0.88),rgba(9,13,19,0.92))] p-4 text-slate-100 shadow-[0_18px_40px_rgba(0,0,0,0.32)]"
+                      className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,24,32,0.88),rgba(9,13,19,0.92))] p-4 text-slate-100 shadow-[0_18px_40px_rgba(0,0,0,0.32)] u2sso-animate-fade-up"
                       key={entry.serviceName}
+                      style={{ animationDelay: `${index * 55}ms` }}
                     >
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
                             {entry.serviceName}
                           </div>
-                          <div className="mt-1 text-sm text-slate-200">Credential card</div>
+                          <div className="mt-1 text-sm text-slate-200">Stored entry</div>
                         </div>
                         <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
                           Saved
