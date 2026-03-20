@@ -344,14 +344,14 @@ export default function App() {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
-          <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl u2sso-animate-fade-up">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl u2sso-animate-fade-up">
             <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
               Review request
             </div>
             <div className="mt-2 font-display text-xl text-slate-100">
               {pendingRequest ? `${pendingRequest.flow === "signup" ? "Sign up" : "Sign in"} approval` : "Loading request"}
             </div>
-            <div className="mt-5 rounded-[28px] border border-white/10 bg-slate-950/70 px-4 py-4 text-sm leading-6 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="mt-5 rounded-[22px] border border-white/10 bg-slate-950/70 px-4 py-4 text-sm leading-6 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Service</div>
               <div className="mt-1 text-sm text-slate-100">{pendingRequest?.serviceName || "Loading..."}</div>
               <div className="mt-4 text-[11px] uppercase tracking-[0.26em] text-slate-400">Origin</div>
@@ -360,10 +360,8 @@ export default function App() {
               <div className="mt-1 break-all font-mono text-xs leading-5 text-slate-100">
                 {pendingRequest?.challenge || "Loading..."}
               </div>
-              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
-                  Service key
-                </div>
+              <div className="mt-5 border-t border-white/10 pt-4">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Service key</div>
                 <div className="mt-3 break-all font-mono text-xs leading-5 text-slate-100">
                   {approvalChildCredential?.spkPublicKey ||
                     childCredentials.find((entry) => entry.serviceName === pendingRequest?.serviceName)?.publicKey ||
@@ -408,7 +406,7 @@ export default function App() {
               Create or load your vault once. It must be registered before it can be used for
               sign-in.
             </p>
-            <div className={`mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)] ${creationFx ? "u2sso-animate-vault-breath" : ""}`}>
+            <div className={`mt-6 rounded-[22px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)] ${creationFx ? "u2sso-animate-vault-breath" : ""}`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
@@ -417,7 +415,7 @@ export default function App() {
                   <div className="mt-2 font-display text-xl text-slate-100">New vault</div>
                 </div>
               </div>
-              <div className="mt-5 rounded-[24px] border border-dashed border-white/10 bg-slate-950/70 px-4 py-5">
+              <div className="mt-5 rounded-[18px] border border-dashed border-white/10 bg-slate-950/70 px-4 py-5">
                 <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Public key</div>
                 <div className="mt-2 text-sm leading-6 text-slate-200">
                   Create a vault to reveal your public key.
@@ -472,8 +470,8 @@ export default function App() {
           </h1>
           <p className="mt-3 text-sm leading-6 text-slate-300">Manage your vault and service identities.</p>
 
-          <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
-            <div className="flex items-center justify-between gap-3">
+          <div className="mt-6">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
               <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1 text-sm text-slate-200">
                 <button
                   className={`rounded-full px-4 py-2 transition ${
@@ -504,7 +502,7 @@ export default function App() {
             </div>
 
             {activeTab === "main" ? (
-              <div className={`mt-6 rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,19,27,0.94),rgba(7,11,16,0.96))] p-5 shadow-[0_18px_40px_rgba(0,0,0,0.28)] ${creationFx ? "u2sso-animate-fade-up" : ""}`}>
+              <div className={`mt-5 ${creationFx ? "u2sso-animate-fade-up" : ""}`}>
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-[11px] uppercase tracking-[0.35em] text-cyan-300/80">
@@ -513,7 +511,7 @@ export default function App() {
                     <h2 className="mt-2 font-display text-2xl text-slate-100">Vault root</h2>
                   </div>
                 </div>
-                <div className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.05] px-4 py-4">
+                <div className="mt-5 rounded-[20px] border border-white/10 bg-white/[0.04] px-4 py-4">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
                     Public key
                   </div>
@@ -526,7 +524,7 @@ export default function App() {
                   below.
                 </p>
                 {masterRegistrationState ? (
-                  <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4">
+                  <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.04] px-4 py-4">
                     <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
                       On-chain registration
                     </div>
@@ -552,14 +550,14 @@ export default function App() {
             ) : null}
 
             {activeTab === "services" ? (
-              <div className="mt-6 space-y-3">
+              <div className="mt-5 space-y-3">
                 <p className="text-sm leading-6 text-slate-300">
                   Approved signups create one service identity card here.
                 </p>
                 {childCredentials.length > 0 ? (
                   childCredentials.map((entry, index) => (
                     <div
-                      className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,24,32,0.88),rgba(9,13,19,0.92))] p-4 text-slate-100 shadow-[0_18px_40px_rgba(0,0,0,0.32)] u2sso-animate-fade-up"
+                      className="rounded-[20px] border border-white/10 bg-white/[0.04] p-4 text-slate-100 u2sso-animate-fade-up"
                       key={entry.serviceName}
                       style={{ animationDelay: `${index * 55}ms` }}
                     >
@@ -574,7 +572,7 @@ export default function App() {
                           Saved
                         </div>
                       </div>
-                      <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4">
+                      <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-4">
                         <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
                           Card number
                         </div>
@@ -590,13 +588,13 @@ export default function App() {
                     </div>
                     ))
                   ) : (
-                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm leading-6 text-slate-300">
+                    <div className="rounded-[20px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm leading-6 text-slate-300">
                       No service credentials yet. Approve a signup request to save one.
                     </div>
                   )}
               </div>
             ) : null}
-          </section>
+          </div>
         </section>
       </div>
     </main>
