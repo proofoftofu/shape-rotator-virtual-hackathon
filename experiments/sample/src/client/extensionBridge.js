@@ -9,8 +9,13 @@ export function requestPayloadFromExtension(flow, { challenge, serviceName }) {
     const requestId = `${flow}:${Date.now()}:${Math.random().toString(16).slice(2)}`;
     const timeout = window.setTimeout(() => {
       window.removeEventListener("message", onMessage);
+      console.log("[u2sso-sample] extension request timed out", {
+        flow,
+        requestId,
+        serviceName
+      });
       reject(new Error(`No extension response received for request ${requestId}`));
-    }, 1500);
+    }, 60000);
 
     function onMessage(event) {
       const data = event.data;

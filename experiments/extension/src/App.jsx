@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createExtensionResponse } from "./messageBridge.js";
 import {
   createOrLoadIdentity,
   getStoredIdentity,
@@ -29,8 +30,13 @@ function shorten(value, start = 12, end = 10) {
 }
 
 export default function App() {
+  const searchParams = new URLSearchParams(window.location.search);
+  const approvalRequestId = searchParams.get("requestId");
+  const isApprovalMode = searchParams.get("mode") === "approval" && Boolean(approvalRequestId);
+
   const [identityState, setIdentityState] = useState(null);
   const [hasStoredIdentity, setHasStoredIdentity] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState(null);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
 
@@ -58,6 +64,33 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!isApprovalMode) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    runtimeMessage({
+      requestId: approvalRequestId,
+      type: "u2sso:getPendingRequest"
+    })
+      .then((result) => {
+        if (!cancelled) {
+          setPendingRequest(result?.request || null);
+        }
+      })
+      .catch((readError) => {
+        if (!cancelled) {
+          setError(readError instanceof Error ? readError.message : String(readError));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [approvalRequestId, isApprovalMode]);
 
   async function withAction(actionLabel, work) {
     setBusyAction(actionLabel);
@@ -88,6 +121,63 @@ export default function App() {
     });
   }
 
+  async function handleApproveRequest() {
+    if (!pendingRequest) {
+      return;
+    }
+
+    await withAction("approve-request", async () => {
+      const response = await createExtensionResponse(pendingRequest);
+      await runtimeMessage({
+        requestId: pendingRequest.requestId,
+        response,
+        type: "u2sso:approveRequest"
+      });
+      setPendingRequest(null);
+      window.setTimeout(() => window.close(), 50);
+    });
+  }
+
+  async function handleRejectRequest() {
+    if (!pendingRequest) {
+      return;
+    }
+
+    await withAction("reject-request", async () => {
+      await runtimeMessage({
+        reason: "Request rejected from approval popup",
+        requestId: pendingRequest.requestId,
+        type: "u2sso:rejectRequest"
+      });
+      setPendingRequest(null);
+      window.setTimeout(() => window.close(), 50);
+    });
+  }
+
+  async function runtimeMessage(message) {
+    if (typeof chrome === "undefined" || !chrome.runtime) {
+      throw new Error("Chrome runtime unavailable");
+    }
+
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (result) => {
+        const lastError = chrome.runtime.lastError;
+
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+
+        if (result?.error) {
+          reject(new Error(result.error));
+          return;
+        }
+
+        resolve(result);
+      });
+    });
+  }
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(197,92,59,0.24),_transparent_35%),linear-gradient(160deg,_#f4efe3_0%,_#efe4d0_45%,_#d6c2a1_100%)] px-4 py-5 font-body text-ink">
       <div className="mx-auto w-full max-w-md">
@@ -102,6 +192,38 @@ export default function App() {
             service challenge when a sign up or sign in flow starts; the extension only stores the
             vault identity and approves sample requests.
           </p>
+
+          {isApprovalMode ? (
+            <div className="mt-5 rounded-[28px] border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-5 text-shell shadow-[0_22px_60px_rgba(15,23,22,0.22)]">
+              <div className="text-[11px] uppercase tracking-[0.34em] text-shell/65">
+                Approval request
+              </div>
+              <div className="mt-2 font-display text-xl text-shell">
+                {pendingRequest ? `Review ${pendingRequest.flow}` : "Loading request"}
+              </div>
+              <div className="mt-4 rounded-3xl border border-white/10 bg-white/6 px-4 py-4 text-sm leading-6 text-shell/85">
+                <div>Service: {pendingRequest?.serviceName || "Loading..."}</div>
+                <div className="mt-1">Origin: {pendingRequest?.origin || "Loading..."}</div>
+                <div className="mt-1">Challenge: {pendingRequest?.challenge || "Loading..."}</div>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <button
+                  className="rounded-2xl border border-white/15 bg-white/6 px-4 py-3 text-sm font-semibold text-shell transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={Boolean(busyAction) || !pendingRequest}
+                  onClick={handleRejectRequest}
+                >
+                  {busyAction === "reject-request" ? "Rejecting..." : "Reject"}
+                </button>
+                <button
+                  className="rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={Boolean(busyAction) || !pendingRequest}
+                  onClick={handleApproveRequest}
+                >
+                  {busyAction === "approve-request" ? "Approving..." : "Approve"}
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           <div className="mt-5 rounded-[28px] border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-5 text-shell shadow-[0_22px_60px_rgba(15,23,22,0.22)]">
             <div className="flex items-center justify-between gap-4">
@@ -133,23 +255,25 @@ export default function App() {
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-3">
-            {!hasStoredIdentity ? (
-              <button
-                className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-shell transition hover:bg-pine/90 disabled:cursor-not-allowed disabled:bg-pine/50"
-                disabled={Boolean(busyAction)}
-                onClick={handleCreateOrLoadIdentity}
-              >
-                {busyAction === "identity" ? "Creating identity..." : "Create master key"}
-              </button>
-            ) : (
-              <button
-                className="rounded-2xl border border-ink/15 bg-white/70 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={Boolean(busyAction)}
-                onClick={handleRemoveIdentity}
-              >
-                {busyAction === "remove-identity" ? "Removing..." : "Remove master key"}
-              </button>
-            )}
+            {!isApprovalMode ? (
+              !hasStoredIdentity ? (
+                <button
+                  className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-shell transition hover:bg-pine/90 disabled:cursor-not-allowed disabled:bg-pine/50"
+                  disabled={Boolean(busyAction)}
+                  onClick={handleCreateOrLoadIdentity}
+                >
+                  {busyAction === "identity" ? "Creating identity..." : "Create master key"}
+                </button>
+              ) : (
+                <button
+                  className="rounded-2xl border border-ink/15 bg-white/70 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={Boolean(busyAction)}
+                  onClick={handleRemoveIdentity}
+                >
+                  {busyAction === "remove-identity" ? "Removing..." : "Remove master key"}
+                </button>
+              )
+            ) : null}
           </div>
 
           {error ? (
