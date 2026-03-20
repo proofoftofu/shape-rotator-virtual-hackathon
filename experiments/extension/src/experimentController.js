@@ -71,6 +71,20 @@ function createBrowserStorage() {
             resolve();
           });
         });
+      },
+      async remove(keys) {
+        return new Promise((resolve, reject) => {
+          chrome.storage.local.remove(keys, () => {
+            const lastError = chrome.runtime && chrome.runtime.lastError;
+
+            if (lastError) {
+              reject(new Error(lastError.message));
+              return;
+            }
+
+            resolve();
+          });
+        });
       }
     };
   }
@@ -85,8 +99,45 @@ function createBrowserStorage() {
       for (const [entryKey, entryValue] of Object.entries(entries)) {
         memory.set(entryKey, entryValue);
       }
+    },
+    async remove(keys) {
+      for (const entryKey of Array.isArray(keys) ? keys : [keys]) {
+        memory.delete(entryKey);
+      }
     }
   };
+}
+
+export async function getStoredIdentity(options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  const stored = await storage.get(STORAGE_KEY);
+  const masterSecretHex = stored[STORAGE_KEY];
+
+  if (!masterSecretHex) {
+    return null;
+  }
+
+  hexToBytes(masterSecretHex);
+
+  const masterSecret = masterSecretHexToDecimal(masterSecretHex);
+  const masterIdentity = await deriveMasterIdentity(masterSecret);
+
+  return {
+    masterIdentity,
+    masterSecret,
+    masterSecretHex
+  };
+}
+
+export async function removeStoredIdentity(options = {}) {
+  const storage = options.storage || createBrowserStorage();
+
+  if (typeof storage.remove === "function") {
+    await storage.remove(STORAGE_KEY);
+    return;
+  }
+
+  await storage.set({ [STORAGE_KEY]: undefined });
 }
 
 function resolveSnarkArtifacts(runtimeBaseUrl = "") {
@@ -128,8 +179,8 @@ export async function loadSnarkArtifactBytes(runtimeBaseUrl = "") {
 
 export async function createOrLoadIdentity(options = {}) {
   const storage = options.storage || createBrowserStorage();
-  const stored = await storage.get(STORAGE_KEY);
-  let masterSecretHex = stored[STORAGE_KEY];
+  const storedIdentity = await getStoredIdentity({ storage });
+  let masterSecretHex = storedIdentity?.masterSecretHex;
   let created = false;
 
   if (!masterSecretHex) {

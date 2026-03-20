@@ -6,7 +6,9 @@ import { createRequire } from "node:module";
 import {
   STORAGE_KEY,
   createOrLoadIdentity,
+  getStoredIdentity,
   masterSecretHexToDecimal,
+  removeStoredIdentity,
   resolveSnarkArtifacts,
   runExtensionExperiment
 } from "../src/experimentController.js";
@@ -49,6 +51,25 @@ test("createOrLoadIdentity persists a 32-byte master secret in storage", async (
 
   const stored = await storage.get(STORAGE_KEY);
   assert.equal(stored[STORAGE_KEY], "11".repeat(32));
+});
+
+test("removeStoredIdentity clears the stored master secret and allows recreation", async () => {
+  const storage = createMemoryStorage({ [STORAGE_KEY]: "11".repeat(32) });
+
+  const existing = await getStoredIdentity({ storage });
+  assert.equal(existing?.masterSecretHex, "11".repeat(32));
+
+  await removeStoredIdentity({ storage });
+  const cleared = await getStoredIdentity({ storage });
+  assert.equal(cleared, null);
+
+  const recreated = await createOrLoadIdentity({
+    storage,
+    masterSecretHex: "22".repeat(32)
+  });
+
+  assert.equal(recreated.created, true);
+  assert.equal(recreated.masterSecretHex, "22".repeat(32));
 });
 
 test("runExtensionExperiment matches the existing logic experiment outputs", async () => {

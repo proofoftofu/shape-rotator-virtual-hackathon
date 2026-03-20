@@ -1,10 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  DEFAULT_LOGIN_CHALLENGE,
-  DEFAULT_REGISTRATION_CHALLENGE,
-  DEFAULT_SERVICE_NAME,
   createOrLoadIdentity,
-  runExtensionExperiment
+  getStoredIdentity,
+  removeStoredIdentity
 } from "./experimentController.js";
 
 function JsonPanel({ label, value }) {
@@ -18,16 +16,48 @@ function JsonPanel({ label, value }) {
   );
 }
 
+function shorten(value, start = 12, end = 10) {
+  if (!value) {
+    return "Unavailable";
+  }
+
+  if (value.length <= start + end + 3) {
+    return value;
+  }
+
+  return `${value.slice(0, start)}...${value.slice(-end)}`;
+}
+
 export default function App() {
-  const [serviceName, setServiceName] = useState(DEFAULT_SERVICE_NAME);
-  const [registrationChallenge, setRegistrationChallenge] = useState(DEFAULT_REGISTRATION_CHALLENGE);
-  const [loginChallenge, setLoginChallenge] = useState(DEFAULT_LOGIN_CHALLENGE);
   const [identityState, setIdentityState] = useState(null);
-  const [childCredential, setChildCredential] = useState(null);
-  const [registrationPayload, setRegistrationPayload] = useState(null);
-  const [loginPayload, setLoginPayload] = useState(null);
+  const [hasStoredIdentity, setHasStoredIdentity] = useState(false);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getStoredIdentity()
+      .then((storedIdentity) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (storedIdentity) {
+          setIdentityState(storedIdentity);
+          setHasStoredIdentity(true);
+        }
+      })
+      .catch((readError) => {
+        if (!cancelled) {
+          setError(readError instanceof Error ? readError.message : String(readError));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function withAction(actionLabel, work) {
     setBusyAction(actionLabel);
@@ -46,30 +76,15 @@ export default function App() {
     await withAction("identity", async () => {
       const result = await createOrLoadIdentity();
       setIdentityState(result);
+      setHasStoredIdentity(true);
     });
   }
 
-  async function handleGeneratePayloads(target) {
-    await withAction(target, async () => {
-      const result = await runExtensionExperiment({
-        serviceName,
-        registrationChallenge,
-        loginChallenge
-      });
-
-      setIdentityState({
-        created: result.created,
-        masterSecretHex: result.masterSecretHex,
-        masterSecret: result.masterSecret,
-        masterIdentity: result.masterIdentity
-      });
-      setChildCredential(result.childCredential);
-
-      if (target === "registration") {
-        setRegistrationPayload(result.registrationPayload);
-      } else {
-        setLoginPayload(result.loginPayload);
-      }
+  async function handleRemoveIdentity() {
+    await withAction("remove-identity", async () => {
+      await removeStoredIdentity();
+      setIdentityState(null);
+      setHasStoredIdentity(false);
     });
   }
 
@@ -82,62 +97,59 @@ export default function App() {
             U2SSO vault experiment
           </h1>
           <p className="mt-3 text-sm leading-6 text-ink/75">
-            This popup creates or loads one master secret, derives a service-scoped child public
-            key credential, builds the signup proof payload, and builds the login signature payload
-            inside the extension runtime.
+            This popup creates or loads one master secret, persists it in the extension vault, and
+            displays the master public key like a wallet address. The sample app provides the
+            service challenge when a sign up or sign in flow starts; the extension only stores the
+            vault identity and approves sample requests.
           </p>
 
-          <div className="mt-5 space-y-4">
-            <label className="block">
-              <span className="text-xs uppercase tracking-[0.25em] text-pine/80">Service name</span>
-              <input
-                className="mt-2 w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-ember focus:ring-2 focus:ring-ember/20"
-                value={serviceName}
-                onChange={(event) => setServiceName(event.target.value)}
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs uppercase tracking-[0.25em] text-pine/80">
-                Registration challenge
-              </span>
-              <input
-                className="mt-2 w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-ember focus:ring-2 focus:ring-ember/20"
-                value={registrationChallenge}
-                onChange={(event) => setRegistrationChallenge(event.target.value)}
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs uppercase tracking-[0.25em] text-pine/80">Login challenge</span>
-              <input
-                className="mt-2 w-full rounded-2xl border border-ink/10 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-ember focus:ring-2 focus:ring-ember/20"
-                value={loginChallenge}
-                onChange={(event) => setLoginChallenge(event.target.value)}
-              />
-            </label>
+          <div className="mt-5 rounded-[28px] border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-5 text-shell shadow-[0_22px_60px_rgba(15,23,22,0.22)]">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.34em] text-shell/65">
+                  Vault address
+                </div>
+                <div className="mt-2 font-display text-xl text-shell">
+                  {identityState ? "Master key active" : "No master key loaded"}
+                </div>
+              </div>
+              <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-[11px] uppercase tracking-[0.3em] text-emerald-200">
+                {hasStoredIdentity ? "Locked" : "Empty"}
+              </div>
+            </div>
+            <div className="mt-5 rounded-3xl border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-[11px] uppercase tracking-[0.26em] text-shell/60">
+                Master public key
+              </div>
+              <div className="mt-2 break-all font-mono text-sm leading-6 text-shell">
+                {identityState?.masterIdentity?.publicKey?.join(",") || "Create a master key to reveal the address"}
+              </div>
+              {identityState?.masterIdentity?.commitment ? (
+                <div className="mt-3 text-xs leading-5 text-shell/70">
+                  Commitment: {shorten(identityState.masterIdentity.commitment, 18, 12)}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-3">
-            <button
-              className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-shell transition hover:bg-pine/90 disabled:cursor-not-allowed disabled:bg-pine/50"
-              disabled={Boolean(busyAction)}
-              onClick={handleCreateOrLoadIdentity}
-            >
-              {busyAction === "identity" ? "Loading identity..." : "Create or load identity"}
-            </button>
-            <button
-              className="rounded-2xl bg-ember px-4 py-3 text-sm font-semibold text-white transition hover:bg-ember/90 disabled:cursor-not-allowed disabled:bg-ember/50"
-              disabled={Boolean(busyAction)}
-              onClick={() => handleGeneratePayloads("registration")}
-            >
-              {busyAction === "registration" ? "Generating registration..." : "Generate registration payload"}
-            </button>
-            <button
-              className="rounded-2xl border border-ink/15 bg-white/70 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={Boolean(busyAction)}
-              onClick={() => handleGeneratePayloads("login")}
-            >
-              {busyAction === "login" ? "Generating login..." : "Generate login payload"}
-            </button>
+            {!hasStoredIdentity ? (
+              <button
+                className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-shell transition hover:bg-pine/90 disabled:cursor-not-allowed disabled:bg-pine/50"
+                disabled={Boolean(busyAction)}
+                onClick={handleCreateOrLoadIdentity}
+              >
+                {busyAction === "identity" ? "Creating identity..." : "Create master key"}
+              </button>
+            ) : (
+              <button
+                className="rounded-2xl border border-ink/15 bg-white/70 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={Boolean(busyAction)}
+                onClick={handleRemoveIdentity}
+              >
+                {busyAction === "remove-identity" ? "Removing..." : "Remove master key"}
+              </button>
+            )}
           </div>
 
           {error ? (
@@ -147,12 +159,7 @@ export default function App() {
           ) : null}
         </section>
 
-        <div className="mt-4 space-y-4">
-          <JsonPanel label="Identity" value={identityState} />
-          <JsonPanel label="Child credential" value={childCredential} />
-          <JsonPanel label="Registration proof payload" value={registrationPayload} />
-          <JsonPanel label="Login signature payload" value={loginPayload} />
-        </div>
+        <div className="mt-4 space-y-4" />
       </div>
     </main>
   );
