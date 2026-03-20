@@ -566,15 +566,14 @@ export default function App() {
                           <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
                             {entry.serviceName}
                           </div>
-                          <div className="mt-1 text-sm text-slate-200">Stored entry</div>
                         </div>
                         <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                          Saved
+                          Public key
                         </div>
                       </div>
                       <div className="mt-4 rounded-[18px] border border-white/10 bg-white/[0.03] px-4 py-4">
                         <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
-                          Card number
+                          Public key
                         </div>
                         <div className="mt-3 break-all font-mono text-xs leading-5 text-slate-100">
                           {entry.publicKey}

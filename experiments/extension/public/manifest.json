@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "U2SSO Pass",
   "version": "0.1.0",
-  "description": "React and Tailwind popup that reuses the logic experiment to generate U2SSO registration and login payloads.",
+  "description": "U2SSO Pass is the browser extension for U2SSO identities, approvals, and service-specific keys.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["<all_urls>"],
   "content_security_policy": {
