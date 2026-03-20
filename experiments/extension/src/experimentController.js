@@ -6,6 +6,7 @@ const {
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
   buildGroup,
+  buildGroupFromRegistryEntries,
   createLoginPayload,
   createRegistrationPayload,
   deriveChildCredential,
@@ -281,7 +282,9 @@ export async function runExtensionExperiment(options = {}) {
   const registrationChallenge = options.registrationChallenge || DEFAULT_REGISTRATION_CHALLENGE;
   const loginChallenge = options.loginChallenge || DEFAULT_LOGIN_CHALLENGE;
   const snarkArtifacts = options.snarkArtifacts || resolveSnarkArtifacts(options.runtimeBaseUrl);
-  const groupContext = await buildGroup(identity.masterSecret, options.groupSecrets || DEFAULT_GROUP_SECRETS);
+  const groupContext = options.registryEntries
+    ? await buildGroupFromRegistryEntries(identity.masterIdentity, options.registryEntries)
+    : await buildGroup(identity.masterSecret, options.groupSecrets || DEFAULT_GROUP_SECRETS);
   const childCredential = await deriveChildCredential(identity.masterSecret, serviceName);
   const registrationPayload = await createRegistrationPayload(
     identity.masterSecret,

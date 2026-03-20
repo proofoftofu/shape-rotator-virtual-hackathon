@@ -5,6 +5,7 @@ contract U2SSORegistry {
     struct IdentityRecord {
         uint256 id;
         uint256 id33;
+        uint256 commitment;
         bool active;
         address owner;
         uint64 registeredAt;
@@ -30,7 +31,7 @@ contract U2SSORegistry {
         _owner = msg.sender;
     }
 
-    function addID(uint256 id, uint256 id33) external returns (uint256) {
+    function addID(uint256 id, uint256 id33, uint256 commitment) external returns (uint256) {
         if (getIDIndex(id, id33) >= 0) {
             revert IdentityAlreadyRegistered(id, id33);
         }
@@ -40,6 +41,7 @@ contract U2SSORegistry {
             IdentityRecord({
                 id: id,
                 id33: id33,
+                commitment: commitment,
                 active: true,
                 owner: msg.sender,
                 registeredAt: uint64(block.timestamp)
@@ -125,7 +127,14 @@ contract U2SSORegistry {
     function getIdentity(uint256 index)
         external
         view
-        returns (uint256 id, uint256 id33, bool active, address recordOwner, uint64 registeredAt)
+        returns (
+            uint256 id,
+            uint256 id33,
+            uint256 commitment,
+            bool active,
+            address recordOwner,
+            uint64 registeredAt
+        )
     {
         if (index >= _idList.length) {
             revert IndexOutOfBounds(index);
@@ -135,6 +144,7 @@ contract U2SSORegistry {
         return (
             identity.id,
             identity.id33,
+            identity.commitment,
             identity.active,
             identity.owner,
             identity.registeredAt

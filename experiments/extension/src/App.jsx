@@ -5,12 +5,10 @@ import {
   createOrLoadIdentity,
   getStoredChildCredentials,
   getStoredMasterRegistrationState,
-  getStoredRegistryOrigin,
   getStoredIdentity,
   previewChildCredential,
   saveStoredChildCredential,
   saveStoredMasterRegistrationState,
-  saveStoredRegistryOrigin,
   removeStoredIdentity
 } from "./experimentController.js";
 
@@ -46,7 +44,7 @@ export default function App() {
   const [identityState, setIdentityState] = useState(null);
   const [hasStoredIdentity, setHasStoredIdentity] = useState(false);
   const [masterRegistrationState, setMasterRegistrationState] = useState(null);
-  const [registryOrigin, setRegistryOrigin] = useState(DEFAULT_REGISTRY_ORIGIN);
+  const [registryEntries, setRegistryEntries] = useState([]);
   const [pendingRequest, setPendingRequest] = useState(null);
   const [approvalChildCredential, setApprovalChildCredential] = useState(null);
   const [childCredentials, setChildCredentials] = useState([]);
@@ -61,10 +59,9 @@ export default function App() {
     Promise.all([
       getStoredIdentity(),
       getStoredChildCredentials(),
-      getStoredMasterRegistrationState(),
-      getStoredRegistryOrigin()
+      getStoredMasterRegistrationState()
     ])
-      .then(([storedIdentity, storedChildCredentials, storedRegistrationState, storedRegistryOrigin]) => {
+      .then(([storedIdentity, storedChildCredentials, storedRegistrationState]) => {
         if (cancelled) {
           return;
         }
@@ -76,7 +73,6 @@ export default function App() {
 
         setChildCredentials(storedChildCredentials || []);
         setMasterRegistrationState(storedRegistrationState || null);
-        setRegistryOrigin(storedRegistryOrigin || DEFAULT_REGISTRY_ORIGIN);
       })
       .catch((readError) => {
         if (!cancelled) {
@@ -171,19 +167,22 @@ export default function App() {
         message: "Vault created. Registering the vault on-chain..."
       });
       try {
-        const registrationResponse = await fetch(new URL("/api/master-identity", registryOrigin).toString(), {
-          body: JSON.stringify({ masterIdentity: result.masterIdentity }),
-          headers: {
-            "Content-Type": "application/json"
-          },
-          method: "POST"
-        });
+        const registrationResponse = await fetch(
+          new URL("/api/master-identity", DEFAULT_REGISTRY_ORIGIN).toString(),
+          {
+            body: JSON.stringify({ masterIdentity: result.masterIdentity }),
+            headers: {
+              "Content-Type": "application/json"
+            },
+            method: "POST"
+          }
+        );
 
         const registration = await registrationResponse.json();
         console.log("[u2sso-extension] master identity registration response", {
           body: registration,
           ok: registrationResponse.ok,
-          origin: registryOrigin,
+          origin: DEFAULT_REGISTRY_ORIGIN,
           status: registrationResponse.status
         });
 
@@ -193,20 +192,19 @@ export default function App() {
 
         const nextState = {
           phase: "registered",
-          message: "Master identity registered on-chain.",
-          registration
+          message: "Registered"
         };
         setMasterRegistrationState(nextState);
         await saveStoredMasterRegistrationState(nextState);
-      } catch (registrationError) {
-        const message =
-          registrationError instanceof Error ? registrationError.message : String(registrationError);
-        const nextState = {
-          phase: "failed",
-          message
-        };
-        setMasterRegistrationState(nextState);
-        await saveStoredMasterRegistrationState(nextState);
+        const registryResponse = await fetch(new URL("/api/master-identity", DEFAULT_REGISTRY_ORIGIN).toString());
+        const registryBody = await registryResponse.json();
+        console.log("[u2sso-extension] loaded registry entries", {
+          count: Array.isArray(registryBody.identities) ? registryBody.identities.length : 0,
+          identities: registryBody.identities
+        });
+        if (registryResponse.ok) {
+          setRegistryEntries(Array.isArray(registryBody.identities) ? registryBody.identities : []);
+        }
       } finally {
         setCreationFx(false);
       }
@@ -225,12 +223,6 @@ export default function App() {
     });
   }
 
-  async function handleRegistryOriginChange(event) {
-    const nextOrigin = event.target.value;
-    setRegistryOrigin(nextOrigin);
-    await saveStoredRegistryOrigin(nextOrigin);
-  }
-
   async function handleApproveRequest() {
     if (!pendingRequest) {
       return;
@@ -241,7 +233,41 @@ export default function App() {
         throw new Error("Master identity must be registered on-chain before sign-in.");
       }
 
-      const response = await createExtensionResponse(pendingRequest);
+      let nextRegistryEntries = registryEntries;
+      const registryResponse = await fetch(
+        new URL("/api/master-identity", DEFAULT_REGISTRY_ORIGIN).toString()
+      );
+      const registryBody = await registryResponse.json();
+
+      if (!registryResponse.ok) {
+        throw new Error(registryBody.error || "Failed to load registry identities");
+      }
+
+      nextRegistryEntries = Array.isArray(registryBody.identities) ? registryBody.identities : [];
+      setRegistryEntries(nextRegistryEntries);
+
+      if (!Array.isArray(nextRegistryEntries) || nextRegistryEntries.length === 0) {
+        throw new Error("No registered master identities are available yet.");
+      }
+
+      console.log("[u2sso-extension] approving request with registry entries", {
+        count: nextRegistryEntries.length,
+        requestId: pendingRequest.requestId,
+        serviceName: pendingRequest.serviceName
+      });
+
+      const response = await createExtensionResponse(pendingRequest, {
+        experimentOptions: {
+          masterSecret: identityState?.masterSecret,
+          registryEntries: nextRegistryEntries
+        }
+      });
+      console.log("[u2sso-extension] approval response created", {
+        flow: response.flow,
+        requestId: response.requestId,
+        hasPayload: Boolean(response.payload),
+        keys: response.payload ? Object.keys(response.payload) : []
+      });
       if (pendingRequest.flow === "signup") {
         await saveStoredChildCredential(
           {
@@ -264,6 +290,10 @@ export default function App() {
         requestId: pendingRequest.requestId,
         response,
         type: "u2sso:approveRequest"
+      });
+      console.log("[u2sso-extension] approval delivered to sample", {
+        requestId: pendingRequest.requestId,
+        flow: pendingRequest.flow
       });
       setPendingRequest(null);
       window.close();
@@ -375,18 +405,9 @@ export default function App() {
               Create your vault
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Create or load your vault once. The extension registers it on-chain before it can
-              be used for sign-in.
+              Create or load your vault once. It must be registered before it can be used for
+              sign-in.
             </p>
-            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
-              <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Registry</div>
-              <input
-                className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60"
-                onChange={handleRegistryOriginChange}
-                placeholder="Service API origin"
-                value={registryOrigin}
-              />
-            </div>
             <div className={`mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)] ${creationFx ? "u2sso-animate-vault-breath" : ""}`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -415,7 +436,7 @@ export default function App() {
             {masterRegistrationState ? (
               <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-200">
                 <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
-                  Registration
+                  On-chain registration
                 </div>
                 <div className="mt-2 leading-6">{masterRegistrationState.message}</div>
                 {masterRegistrationState.phase === "failed" ? (
@@ -510,13 +531,12 @@ export default function App() {
                       On-chain registration
                     </div>
                     <div className="mt-2 text-sm leading-6 text-slate-200">
-                      {masterRegistrationState.message}
+                      {masterRegistrationState.phase === "registered"
+                        ? "Registered"
+                        : masterRegistrationState.phase === "failed"
+                          ? "Unregistered"
+                          : "Registering..."}
                     </div>
-                    {masterRegistrationState.registration ? (
-                      <pre className="mt-3 max-h-36 overflow-auto rounded-2xl bg-slate-950/80 p-3 text-xs leading-5 text-slate-100">
-                        {JSON.stringify(masterRegistrationState.registration, null, 2)}
-                      </pre>
-                    ) : null}
                   </div>
                 ) : null}
                 <div className="mt-5 grid grid-cols-1 gap-3">

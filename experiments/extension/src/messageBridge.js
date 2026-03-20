@@ -34,7 +34,7 @@ export async function createExtensionResponse(message, options = {}) {
   const experimentOptions = {
     ...options.experimentOptions,
     groupSecrets: DEFAULT_GROUP_SECRETS,
-    masterSecret: DEMO_EXTENSION_MASTER_SECRET,
+    masterSecret: options.experimentOptions?.masterSecret || DEMO_EXTENSION_MASTER_SECRET,
     serviceName: message.serviceName,
     registrationChallenge: message.flow === "signup"
       ? message.challenge
@@ -51,6 +51,15 @@ export async function createExtensionResponse(message, options = {}) {
   }
 
   const result = await runExperiment(experimentOptions);
+
+  console.log("[u2sso-extension] createExtensionResponse result", {
+    flow: message.flow,
+    hasMasterIdentity: Boolean(result.masterIdentity),
+    hasRegistrationPayload: Boolean(result.registrationPayload),
+    hasLoginPayload: Boolean(result.loginPayload),
+    memberIndex: result.registrationPayload?.memberIndex,
+    groupRoot: result.registrationPayload?.groupRoot
+  });
 
   return {
     source: RESPONSE_SOURCE,

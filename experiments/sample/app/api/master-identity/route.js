@@ -5,12 +5,18 @@ import contractClient from "../../../src/server/contractClient";
 function normalizeMasterIdentity(body) {
   const masterIdentity = body?.masterIdentity || body;
   const publicKey = masterIdentity?.publicKey;
+  const commitment = masterIdentity?.commitment;
 
   if (!Array.isArray(publicKey) || publicKey.length < 2) {
     throw new Error("Missing masterIdentity.publicKey");
   }
 
+  if (commitment === undefined || commitment === null) {
+    throw new Error("Missing masterIdentity.commitment");
+  }
+
   return {
+    commitment: BigInt(commitment),
     publicKey: [BigInt(publicKey[0]), BigInt(publicKey[1])]
   };
 }
@@ -22,7 +28,11 @@ export async function GET(request) {
     const id33 = searchParams.get("id33");
 
     if (!id || !id33) {
-      throw new Error("Missing id or id33");
+      const identities = await contractClient.getActiveIdentities();
+      return Response.json({
+        ok: true,
+        identities
+      });
     }
 
     const result = await contractClient.getMasterIdentityRegistration({

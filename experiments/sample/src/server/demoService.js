@@ -9,24 +9,36 @@ const DEMO_SERVICE_NAME = "sample.service.local";
 const {
   DEFAULT_GROUP_SECRETS,
   createRegistryGroup,
+  createRegistryGroupFromEntries,
   runLogicExperiment,
   verifyLoginPayload,
   verifyRegistrationPayload
 } = getLogicModule();
+const contractClient = require("./contractClient");
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
 const DEMO_SEMAPHORE_ARTIFACTS = {
   wasm: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.wasm"),
   zkey: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.zkey")
 };
 
-let registryGroupPromise;
+async function getRegistryGroup() {
+  const hasContractConfig = Boolean(
+    process.env.U2SSO_SAMPLE_RPC_URL ||
+    process.env.U2SSO_SAMPLE_PRC_URL ||
+    process.env.U2SSO_PRC ||
+    process.env.PRC ||
+    process.env.U2SSO_SAMPLE_PRIVATE_KEY ||
+    process.env.U2SSO_PRIVATE_KEY ||
+    process.env.PRIVATE_KEY ||
+    process.env.U2SSO_SAMPLE_REGISTRY_ADDRESS ||
+    process.env.U2SSO_ADDRESS
+  );
 
-function getRegistryGroup() {
-  if (!registryGroupPromise) {
-    registryGroupPromise = createRegistryGroup(DEFAULT_GROUP_SECRETS);
-  }
-
-  return registryGroupPromise;
+  return hasContractConfig
+    ? contractClient
+        .getActiveIdentities()
+        .then((identities) => createRegistryGroupFromEntries(identities))
+    : createRegistryGroup(DEFAULT_GROUP_SECRETS);
 }
 
 async function issueChallenge(flow, serviceName = DEMO_SERVICE_NAME) {

@@ -128,6 +128,44 @@ async function buildGroup(masterSecret, groupSecrets = DEFAULT_GROUP_SECRETS) {
   };
 }
 
+async function createRegistryGroupFromEntries(registryEntries = []) {
+  const members = [];
+
+  for (const entry of registryEntries) {
+    if (entry.commitment === undefined || entry.commitment === null) {
+      throw new Error("Registry entry is missing a commitment");
+    }
+    members.push({
+      commitment: entry.commitment.toString(),
+      id: entry.id,
+      id33: entry.id33,
+      secret: entry.commitment.toString()
+    });
+  }
+
+  return {
+    group: new Group(members.map((member) => member.commitment)),
+    members
+  };
+}
+
+async function buildGroupFromRegistryEntries(masterIdentity, registryEntries = []) {
+  const registryGroup = await createRegistryGroupFromEntries(registryEntries);
+  const memberIndex = registryGroup.members.findIndex(
+    (member) => member.commitment === masterIdentity.commitment.toString()
+  );
+
+  if (memberIndex < 0) {
+    throw new Error("Master identity is not present in the on-chain registry list");
+  }
+
+  return {
+    group: registryGroup.group,
+    members: registryGroup.members,
+    memberIndex
+  };
+}
+
 async function createRegistryGroup(groupSecrets = DEFAULT_GROUP_SECRETS) {
   const members = [];
 
@@ -209,7 +247,11 @@ async function createLoginPayload(masterSecret, serviceName, challenge) {
 async function verifyRegistrationPayload(payload, options = {}) {
   const serviceName = options.serviceName || payload.serviceName;
   const challenge = options.challenge || payload.challenge;
-  const registryGroup = options.groupContext || await createRegistryGroup(options.groupSecrets);
+  const registryGroup =
+    options.groupContext ||
+    (options.registryEntries
+      ? await createRegistryGroupFromEntries(options.registryEntries)
+      : await createRegistryGroup(options.groupSecrets));
   const expectedPublicKey = options.expectedSpkPublicKey;
   const expectedCommitment = options.expectedSpkCommitment;
 
@@ -337,7 +379,9 @@ module.exports = {
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
   buildGroup,
+  buildGroupFromRegistryEntries,
   createRegistryGroup,
+  createRegistryGroupFromEntries,
   createLoginPayload,
   createLocalSemaphoreArtifacts,
   createOrLoadPasskey,

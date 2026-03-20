@@ -74,8 +74,9 @@ function toRegistryContract() {
 async function registerMasterIdentity(masterIdentity) {
   const { contract } = toRegistryContract();
   const [id, id33] = masterIdentity.publicKey;
+  const commitment = masterIdentity.commitment;
 
-  const tx = await contract.addID(BigInt(id), BigInt(id33));
+  const tx = await contract.addID(BigInt(id), BigInt(id33), BigInt(commitment));
   const receipt = await tx.wait();
 
   return {
@@ -113,12 +114,26 @@ async function getMasterIdentityRegistration(masterIdentity) {
 
 async function getActiveIdentities() {
   const { contract } = toRegistryContract();
-  const [ids, id33s] = await contract.getActiveIDs();
+  const size = await contract.getIDSize();
+  const identities = [];
 
-  return ids.map((id, index) => ({
-    id: id.toString(),
-    id33: id33s[index].toString()
-  }));
+  for (let index = 0n; index < size; index += 1n) {
+    const identity = await contract.getIdentity(index);
+    if (!identity.active) {
+      continue;
+    }
+
+    identities.push({
+      commitment: identity.commitment.toString(),
+      id: identity.id.toString(),
+      id33: identity.id33.toString(),
+      index: Number(index),
+      owner: identity.recordOwner,
+      registeredAt: Number(identity.registeredAt)
+    });
+  }
+
+  return identities;
 }
 
 module.exports = {

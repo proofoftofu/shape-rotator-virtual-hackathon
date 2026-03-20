@@ -7,8 +7,6 @@ import { requestPayloadFromExtension } from "./extensionBridge";
 export default function U2SSOFlowClient({ flow }) {
   const [challengeData, setChallengeData] = useState(null);
   const [payload, setPayload] = useState("");
-  const [masterIdentity, setMasterIdentity] = useState(null);
-  const [registrationState, setRegistrationState] = useState(null);
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState("");
 
@@ -56,44 +54,13 @@ export default function U2SSOFlowClient({ flow }) {
     try {
       const nextPayload = await requestPayloadFromExtension(flow, challengeData);
       setPayload(JSON.stringify(nextPayload, null, 2));
-      setMasterIdentity(nextPayload.masterIdentity || null);
       setStatus("Extension payload received.");
       setStatusTone("success");
 
-      if (flow === "signup" && nextPayload.masterIdentity) {
-        await refreshRegistrationState(nextPayload.masterIdentity);
-      }
     } catch (error) {
       setStatus(error.message);
       setStatusTone("error");
     }
-  }
-
-  async function refreshRegistrationState(nextMasterIdentity = masterIdentity) {
-    if (!nextMasterIdentity) {
-      setStatus("No master identity payload is available yet.");
-      setStatusTone("error");
-      return;
-    }
-
-    const [id, id33] = nextMasterIdentity.publicKey || [];
-    const response = await fetch(`/api/master-identity?id=${encodeURIComponent(id)}&id33=${encodeURIComponent(id33)}`);
-    const body = await response.json();
-    console.log("[u2sso-sample] master identity registration status", {
-      body,
-      ok: response.ok,
-      status: response.status
-    });
-
-    if (!response.ok) {
-      setStatus(body.error || "Failed to read master identity registration state");
-      setStatusTone("error");
-      return;
-    }
-
-    setRegistrationState(body);
-    setStatus(body.registration?.active ? "Master identity is registered." : "Master identity is not registered yet.");
-    setStatusTone(body.registration?.active ? "success" : "error");
   }
 
   async function submitFlow() {
@@ -206,22 +173,6 @@ export default function U2SSOFlowClient({ flow }) {
           {status ? <pre className={`status ${statusTone}`}>{status}</pre> : null}
         </article>
       </section>
-
-      {flow === "signup" ? (
-      <section className="panel" style={{ marginTop: "1rem" }}>
-        <h2>Master identity status</h2>
-        <p className="meta">
-            The extension registers the vault master identity on-chain through this API. Use this
-            panel to verify the current registration state.
-        </p>
-        <div className="stack">
-          <button disabled={!masterIdentity} onClick={() => refreshRegistrationState()} type="button">
-            Check registration status
-          </button>
-        </div>
-        {registrationState ? <pre className="status">{JSON.stringify(registrationState, null, 2)}</pre> : null}
-      </section>
-      ) : null}
     </>
   );
 }
