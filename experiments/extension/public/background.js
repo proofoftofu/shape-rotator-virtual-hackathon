@@ -150,6 +150,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           ok: true
         };
       }
+      case "u2sso:deliverRequestError": {
+        const record = await getPendingRequest(message.requestId);
+
+        if (!record) {
+          throw new Error("Unknown pending request");
+        }
+
+        await deliverResponse(record, {
+          error: message.error || "Request failed",
+          flow: record.flow,
+          requestId: record.requestId,
+          source: "u2sso-extension"
+        });
+
+        return {
+          ok: true
+        };
+      }
       case "u2sso:rejectRequest": {
         const record = await getPendingRequest(message.requestId);
 

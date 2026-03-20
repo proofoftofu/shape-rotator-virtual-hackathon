@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "React and Tailwind popup that reuses the logic experiment to generate U2SSO registration and login payloads.",
   "permissions": ["storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },

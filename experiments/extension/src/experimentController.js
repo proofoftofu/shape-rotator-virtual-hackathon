@@ -14,7 +14,10 @@ const {
 
 const STORAGE_KEY = "u2sso.masterSecretHex";
 const CHILD_CREDENTIALS_KEY = "u2sso.childCredentials";
+const MASTER_REGISTRATION_STATE_KEY = "u2sso.masterRegistrationState";
+const REGISTRY_ORIGIN_KEY = "u2sso.registryOrigin";
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
+const DEFAULT_REGISTRY_ORIGIN = "http://127.0.0.1:3000";
 
 function bytesToHex(bytes) {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
@@ -169,11 +172,38 @@ export async function removeStoredIdentity(options = {}) {
   if (typeof storage.remove === "function") {
     await storage.remove(STORAGE_KEY);
     await storage.remove(CHILD_CREDENTIALS_KEY);
+    await storage.remove(MASTER_REGISTRATION_STATE_KEY);
     return;
   }
 
   await storage.set({ [STORAGE_KEY]: undefined });
   await storage.set({ [CHILD_CREDENTIALS_KEY]: undefined });
+  await storage.set({ [MASTER_REGISTRATION_STATE_KEY]: undefined });
+}
+
+export async function getStoredMasterRegistrationState(options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  const stored = await storage.get(MASTER_REGISTRATION_STATE_KEY);
+  return stored[MASTER_REGISTRATION_STATE_KEY] || null;
+}
+
+export async function saveStoredMasterRegistrationState(state, options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  await storage.set({ [MASTER_REGISTRATION_STATE_KEY]: state });
+  return state;
+}
+
+export async function getStoredRegistryOrigin(options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  const stored = await storage.get(REGISTRY_ORIGIN_KEY);
+  return stored[REGISTRY_ORIGIN_KEY] || DEFAULT_REGISTRY_ORIGIN;
+}
+
+export async function saveStoredRegistryOrigin(origin, options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  const nextOrigin = typeof origin === "string" && origin.trim() ? origin.trim() : DEFAULT_REGISTRY_ORIGIN;
+  await storage.set({ [REGISTRY_ORIGIN_KEY]: nextOrigin });
+  return nextOrigin;
 }
 
 function resolveSnarkArtifacts(runtimeBaseUrl = "") {
@@ -282,7 +312,10 @@ export {
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
   CHILD_CREDENTIALS_KEY,
+  MASTER_REGISTRATION_STATE_KEY,
+  REGISTRY_ORIGIN_KEY,
   STORAGE_KEY,
+  DEFAULT_REGISTRY_ORIGIN,
   createBrowserStorage,
   hexToBytes,
   masterSecretHexToDecimal,

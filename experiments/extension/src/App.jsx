@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { createExtensionResponse } from "./messageBridge.js";
 import {
+  DEFAULT_REGISTRY_ORIGIN,
   createOrLoadIdentity,
   getStoredChildCredentials,
+  getStoredMasterRegistrationState,
+  getStoredRegistryOrigin,
   getStoredIdentity,
   previewChildCredential,
   saveStoredChildCredential,
+  saveStoredMasterRegistrationState,
+  saveStoredRegistryOrigin,
   removeStoredIdentity
 } from "./experimentController.js";
 
@@ -40,6 +45,8 @@ export default function App() {
 
   const [identityState, setIdentityState] = useState(null);
   const [hasStoredIdentity, setHasStoredIdentity] = useState(false);
+  const [masterRegistrationState, setMasterRegistrationState] = useState(null);
+  const [registryOrigin, setRegistryOrigin] = useState(DEFAULT_REGISTRY_ORIGIN);
   const [pendingRequest, setPendingRequest] = useState(null);
   const [approvalChildCredential, setApprovalChildCredential] = useState(null);
   const [childCredentials, setChildCredentials] = useState([]);
@@ -51,8 +58,13 @@ export default function App() {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([getStoredIdentity(), getStoredChildCredentials()])
-      .then(([storedIdentity, storedChildCredentials]) => {
+    Promise.all([
+      getStoredIdentity(),
+      getStoredChildCredentials(),
+      getStoredMasterRegistrationState(),
+      getStoredRegistryOrigin()
+    ])
+      .then(([storedIdentity, storedChildCredentials, storedRegistrationState, storedRegistryOrigin]) => {
         if (cancelled) {
           return;
         }
@@ -63,6 +75,8 @@ export default function App() {
         }
 
         setChildCredentials(storedChildCredentials || []);
+        setMasterRegistrationState(storedRegistrationState || null);
+        setRegistryOrigin(storedRegistryOrigin || DEFAULT_REGISTRY_ORIGIN);
       })
       .catch((readError) => {
         if (!cancelled) {
@@ -152,7 +166,50 @@ export default function App() {
       const result = await createOrLoadIdentity();
       setIdentityState(result);
       setHasStoredIdentity(true);
-      window.setTimeout(() => setCreationFx(false), 420);
+      setMasterRegistrationState({
+        phase: "created",
+        message: "Vault created. Registering the vault on-chain..."
+      });
+      try {
+        const registrationResponse = await fetch(new URL("/api/master-identity", registryOrigin).toString(), {
+          body: JSON.stringify({ masterIdentity: result.masterIdentity }),
+          headers: {
+            "Content-Type": "application/json"
+          },
+          method: "POST"
+        });
+
+        const registration = await registrationResponse.json();
+        console.log("[u2sso-extension] master identity registration response", {
+          body: registration,
+          ok: registrationResponse.ok,
+          origin: registryOrigin,
+          status: registrationResponse.status
+        });
+
+        if (!registrationResponse.ok) {
+          throw new Error(registration.error || "Master identity registration failed");
+        }
+
+        const nextState = {
+          phase: "registered",
+          message: "Master identity registered on-chain.",
+          registration
+        };
+        setMasterRegistrationState(nextState);
+        await saveStoredMasterRegistrationState(nextState);
+      } catch (registrationError) {
+        const message =
+          registrationError instanceof Error ? registrationError.message : String(registrationError);
+        const nextState = {
+          phase: "failed",
+          message
+        };
+        setMasterRegistrationState(nextState);
+        await saveStoredMasterRegistrationState(nextState);
+      } finally {
+        setCreationFx(false);
+      }
     });
   }
 
@@ -161,9 +218,17 @@ export default function App() {
       await removeStoredIdentity();
       setIdentityState(null);
       setHasStoredIdentity(false);
+      setMasterRegistrationState(null);
+      await saveStoredMasterRegistrationState(null);
       setChildCredentials([]);
       setActiveTab("main");
     });
+  }
+
+  async function handleRegistryOriginChange(event) {
+    const nextOrigin = event.target.value;
+    setRegistryOrigin(nextOrigin);
+    await saveStoredRegistryOrigin(nextOrigin);
   }
 
   async function handleApproveRequest() {
@@ -172,6 +237,10 @@ export default function App() {
     }
 
     await withAction("approve-request", async () => {
+      if (masterRegistrationState?.phase !== "registered") {
+        throw new Error("Master identity must be registered on-chain before sign-in.");
+      }
+
       const response = await createExtensionResponse(pendingRequest);
       if (pendingRequest.flow === "signup") {
         await saveStoredChildCredential(
@@ -294,7 +363,9 @@ export default function App() {
     );
   }
 
-  if (!hasStoredIdentity) {
+  const isRegistrationComplete = masterRegistrationState?.phase === "registered";
+
+  if (!hasStoredIdentity || !isRegistrationComplete) {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
@@ -304,8 +375,18 @@ export default function App() {
               Create your vault
             </h1>
             <p className="mt-3 text-sm leading-6 text-slate-300">
-              Create or load your vault once, then use it across every supported service.
+              Create or load your vault once. The extension registers it on-chain before it can
+              be used for sign-in.
             </p>
+            <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] p-4">
+              <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Registry</div>
+              <input
+                className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400/60"
+                onChange={handleRegistryOriginChange}
+                placeholder="Service API origin"
+                value={registryOrigin}
+              />
+            </div>
             <div className={`mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)] ${creationFx ? "u2sso-animate-vault-breath" : ""}`}>
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -331,6 +412,24 @@ export default function App() {
                 {busyAction === "identity" ? "Creating identity..." : "Create master key"}
               </button>
             </div>
+            {masterRegistrationState ? (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-slate-200">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                  Registration
+                </div>
+                <div className="mt-2 leading-6">{masterRegistrationState.message}</div>
+                {masterRegistrationState.phase === "failed" ? (
+                  <button
+                    className="mt-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+                    disabled={Boolean(busyAction)}
+                    onClick={handleCreateOrLoadIdentity}
+                    type="button"
+                  >
+                    Retry registration
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
             {error ? (
               <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                 {error}
@@ -405,6 +504,21 @@ export default function App() {
                   This is the root identity stored in your vault. It anchors every service entry
                   below.
                 </p>
+                {masterRegistrationState ? (
+                  <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                      On-chain registration
+                    </div>
+                    <div className="mt-2 text-sm leading-6 text-slate-200">
+                      {masterRegistrationState.message}
+                    </div>
+                    {masterRegistrationState.registration ? (
+                      <pre className="mt-3 max-h-36 overflow-auto rounded-2xl bg-slate-950/80 p-3 text-xs leading-5 text-slate-100">
+                        {JSON.stringify(masterRegistrationState.registration, null, 2)}
+                      </pre>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="mt-5 grid grid-cols-1 gap-3">
                   <button
                     className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"

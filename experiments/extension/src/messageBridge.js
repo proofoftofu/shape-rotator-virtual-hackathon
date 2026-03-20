@@ -56,6 +56,7 @@ export async function createExtensionResponse(message, options = {}) {
     source: RESPONSE_SOURCE,
     flow: message.flow,
     requestId: message.requestId,
+    ...(message.flow === "signup" && result.masterIdentity ? { masterIdentity: result.masterIdentity } : {}),
     payload: message.flow === "signup"
       ? result.registrationPayload
       : result.loginPayload
