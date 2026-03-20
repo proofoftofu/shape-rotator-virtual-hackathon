@@ -11,9 +11,9 @@ import {
 
 function JsonPanel({ label, value }) {
   return (
-    <section className="rounded-3xl border border-ink/10 bg-white/70 p-4 shadow-panel backdrop-blur">
-      <h2 className="font-display text-lg text-ink">{label}</h2>
-      <pre className="mt-3 max-h-52 overflow-auto rounded-2xl bg-ink p-3 text-xs leading-5 text-shell">
+    <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-4 shadow-panel backdrop-blur">
+      <h2 className="font-display text-lg text-slate-100">{label}</h2>
+      <pre className="mt-3 max-h-52 overflow-auto rounded-2xl bg-slate-950/80 p-3 text-xs leading-5 text-slate-100">
         {value ? JSON.stringify(value, null, 2) : "No output yet."}
       </pre>
     </section>
@@ -242,22 +242,27 @@ export default function App() {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
-          <section className="rounded-[28px] border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-5 text-shell shadow-[0_22px_60px_rgba(15,23,22,0.22)]">
-            <div className="text-[11px] uppercase tracking-[0.34em] text-shell/65">
-              Approval request
+          <section className="rounded-[32px] border border-white/10 bg-white/[0.04] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+            <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
+              Review request
             </div>
-            <div className="mt-2 font-display text-xl text-shell">
-              {pendingRequest ? `Review ${pendingRequest.flow}` : "Loading request"}
+            <div className="mt-2 font-display text-xl text-slate-100">
+              {pendingRequest ? `${pendingRequest.flow === "signup" ? "Sign up" : "Sign in"} approval` : "Loading request"}
             </div>
-            <div className="mt-4 rounded-3xl border border-white/10 bg-white/6 px-4 py-4 text-sm leading-6 text-shell/85">
-              <div>Service: {pendingRequest?.serviceName || "Loading..."}</div>
-              <div className="mt-1">Origin: {pendingRequest?.origin || "Loading..."}</div>
-              <div className="mt-1">Challenge: {pendingRequest?.challenge || "Loading..."}</div>
-              <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 px-3 py-3">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-shell/60">
-                  Child public key
+            <div className="mt-5 rounded-[28px] border border-white/10 bg-slate-950/70 px-4 py-4 text-sm leading-6 text-slate-200 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Service</div>
+              <div className="mt-1 text-sm text-slate-100">{pendingRequest?.serviceName || "Loading..."}</div>
+              <div className="mt-4 text-[11px] uppercase tracking-[0.26em] text-slate-400">Origin</div>
+              <div className="mt-1 text-sm text-slate-100">{pendingRequest?.origin || "Loading..."}</div>
+              <div className="mt-4 text-[11px] uppercase tracking-[0.26em] text-slate-400">Challenge</div>
+              <div className="mt-1 break-all font-mono text-xs leading-5 text-slate-100">
+                {pendingRequest?.challenge || "Loading..."}
+              </div>
+              <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                  Service key
                 </div>
-                <div className="mt-2 break-all font-mono text-xs leading-5 text-shell">
+                <div className="mt-3 break-all font-mono text-xs leading-5 text-slate-100">
                   {approvalChildCredential?.spkPublicKey ||
                     childCredentials.find((entry) => entry.serviceName === pendingRequest?.serviceName)?.publicKey ||
                     "Load master key and approve signup first"}
@@ -266,14 +271,14 @@ export default function App() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <button
-                className="rounded-2xl border border-white/15 bg-white/6 px-4 py-3 text-sm font-semibold text-shell transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={Boolean(busyAction) || !pendingRequest}
                 onClick={handleRejectRequest}
               >
                 {busyAction === "reject-request" ? "Rejecting..." : "Reject"}
               </button>
               <button
-                className="rounded-2xl bg-emerald-400 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={Boolean(busyAction) || !pendingRequest}
                 onClick={handleApproveRequest}
               >
@@ -290,7 +295,7 @@ export default function App() {
     return (
       <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
-          <section className="rounded-[28px] border border-white/10 bg-slate-950/75 p-5 shadow-panel backdrop-blur">
+          <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
             <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">U2SSO Pass</p>
             <h1 className="mt-2 font-display text-3xl leading-tight text-slate-100">
               Create your vault
@@ -298,21 +303,17 @@ export default function App() {
             <p className="mt-3 text-sm leading-6 text-slate-300">
               Create or load your vault once, then use it across every supported service.
             </p>
-            <div className="mt-5 rounded-[28px] border border-white/10 bg-slate-900/70 p-5 text-slate-100 shadow-[0_22px_60px_rgba(0,0,0,0.32)]">
+            <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.32)]">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
-                    Vault
-                  </div>
+                  <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Key vault</div>
                   <div className="mt-2 font-display text-xl text-slate-100">New vault</div>
                 </div>
               </div>
-              <div className="mt-5 rounded-3xl border border-white/10 bg-slate-950/80 px-4 py-4">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
-                  Key address
-                </div>
-                <div className="mt-2 break-all font-mono text-sm leading-6 text-slate-100">
-                  Create a vault to reveal the key address
+              <div className="mt-5 rounded-[24px] border border-dashed border-white/10 bg-slate-950/70 px-4 py-5">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Address</div>
+                <div className="mt-2 text-sm leading-6 text-slate-200">
+                  Create a vault to reveal your key address.
                 </div>
               </div>
             </div>
@@ -337,20 +338,18 @@ export default function App() {
   }
 
   return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
       <div className="mx-auto w-full max-w-md">
-        <section className="rounded-[28px] border border-white/10 bg-slate-950/75 p-5 shadow-panel backdrop-blur">
+        <section className="rounded-[28px] border border-white/10 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
           <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">U2SSO Pass</p>
           <h1 className="mt-2 font-display text-3xl leading-tight text-slate-100">
             Your vault
           </h1>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            Main shows your vault. Services shows the service identities you have approved.
-          </p>
+          <p className="mt-3 text-sm leading-6 text-slate-300">Manage your vault and service identities.</p>
 
-          <section className="mt-5 rounded-[28px] border border-white/10 bg-slate-950/75 p-5 shadow-panel backdrop-blur">
+          <section className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_22px_60px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 text-sm text-slate-200">
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1 text-sm text-slate-200">
                 <button
                   className={`rounded-full px-4 py-2 transition ${
                     activeTab === "main"
@@ -380,28 +379,25 @@ export default function App() {
             </div>
 
             {activeTab === "main" ? (
-              <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 px-4 py-5">
+              <div className="mt-6 rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">Vault address</p>
-                    <h2 className="mt-2 font-display text-2xl text-slate-100">Vault key</h2>
+                    <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">Vault key</p>
+                    <h2 className="mt-2 font-display text-2xl text-slate-100">Active vault</h2>
                   </div>
                 </div>
-                <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/80 px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
-                    Key address
-                  </div>
-                  <div className="mt-2 break-all font-mono text-sm leading-6 text-slate-100">
+                <div className="mt-5 rounded-[24px] border border-white/10 bg-slate-950/70 px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">Address</div>
+                  <div className="mt-3 break-all font-mono text-sm leading-6 text-slate-100">
                     {identityState?.masterIdentity?.publicKey?.join(",")}
                   </div>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-slate-300">
-                  This vault key is your root identity. Use it across services and remove it only
-                  when you want to start fresh.
+                <p className="mt-4 text-sm leading-6 text-slate-300">
+                  Your vault key is the root of every service identity card.
                 </p>
-                <div className="mt-4 grid grid-cols-1 gap-3">
+                <div className="mt-5 grid grid-cols-1 gap-3">
                   <button
-                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={Boolean(busyAction)}
                     onClick={handleRemoveIdentity}
                   >
@@ -412,45 +408,44 @@ export default function App() {
             ) : null}
 
             {activeTab === "services" ? (
-              <div className="mt-5 space-y-3">
-                  <p className="text-sm leading-6 text-slate-300">
-                  Approved signups create one service identity card here. The list behaves like a
-                  wallet of service accounts.
+              <div className="mt-6 space-y-3">
+                <p className="text-sm leading-6 text-slate-300">
+                  Approved signups create one service identity card here.
                 </p>
                 {childCredentials.length > 0 ? (
                   childCredentials.map((entry) => (
                     <div
-                      className="rounded-3xl border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-4 text-shell shadow-[0_18px_40px_rgba(15,23,22,0.16)]"
+                      className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(16,24,32,0.88),rgba(9,13,19,0.92))] p-4 text-slate-100 shadow-[0_18px_40px_rgba(0,0,0,0.32)]"
                       key={entry.serviceName}
                     >
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
-                              {entry.serviceName}
-                            </div>
-                            <div className="mt-1 text-sm text-slate-200">Identity card</div>
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                            {entry.serviceName}
                           </div>
-                          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
-                            Saved
-                          </div>
+                          <div className="mt-1 text-sm text-slate-200">Credential card</div>
                         </div>
-                        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-                          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
-                            Service key
-                          </div>
-                          <div className="mt-2 break-all font-mono text-xs leading-5 text-slate-100">
-                            {entry.publicKey}
-                          </div>
+                        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
+                          Saved
                         </div>
-                        {entry.commitment ? (
-                          <div className="mt-3 text-xs leading-5 text-slate-400">
-                            Commitment: {shorten(entry.commitment, 14, 10)}
-                          </div>
-                        ) : null}
                       </div>
+                      <div className="mt-4 rounded-[24px] border border-white/10 bg-white/[0.04] px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+                          Card number
+                        </div>
+                        <div className="mt-3 break-all font-mono text-xs leading-5 text-slate-100">
+                          {entry.publicKey}
+                        </div>
+                      </div>
+                      {entry.commitment ? (
+                        <div className="mt-3 text-xs leading-5 text-slate-400">
+                          Commitment: {shorten(entry.commitment, 14, 10)}
+                        </div>
+                      ) : null}
+                    </div>
                     ))
                   ) : (
-                    <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-sm leading-6 text-slate-300">
+                    <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.03] px-4 py-6 text-sm leading-6 text-slate-300">
                       No service credentials yet. Approve a signup request to save one.
                     </div>
                   )}
