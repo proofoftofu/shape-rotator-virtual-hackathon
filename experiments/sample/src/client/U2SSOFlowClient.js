@@ -9,6 +9,7 @@ export default function U2SSOFlowClient({ flow }) {
   const [payload, setPayload] = useState("");
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,8 +40,8 @@ export default function U2SSOFlowClient({ flow }) {
     };
   }, [flow]);
 
-  async function requestFromExtension() {
-    console.log("[u2sso-sample] request button clicked", {
+  async function runFlow() {
+    console.log("[u2sso-sample] primary action clicked", {
       challengeReady: Boolean(challengeData),
       flow
     });
@@ -51,123 +52,107 @@ export default function U2SSOFlowClient({ flow }) {
       return;
     }
 
+    setBusy(true);
+    setStatus("");
+    setStatusTone("");
+
     try {
       const nextPayload = await requestPayloadFromExtension(flow, challengeData);
       setPayload(JSON.stringify(nextPayload, null, 2));
-      setStatus("Extension payload received.");
-      setStatusTone("success");
+      console.log("[u2sso-sample] extension payload received", {
+        flow,
+        hasPayload: Boolean(nextPayload)
+      });
 
+      const response = await fetch(`/api/${flow}`, {
+        body: JSON.stringify({
+          challengeId: challengeData.challengeId,
+          serviceName: challengeData.serviceName,
+          [flow === "signup" ? "registrationPayload" : "loginPayload"]: nextPayload
+        }),
+        headers: {
+          "Content-Type": "application/json"
+        },
+        method: "POST"
+      });
+      const body = await response.json();
+      console.log("[u2sso-sample] server response received", {
+        body,
+        flow,
+        ok: response.ok,
+        status: response.status
+      });
+
+      if (!response.ok) {
+        setStatus(body.error || "Flow failed");
+        setStatusTone("error");
+        return;
+      }
+
+      console.log("[u2sso-sample] flow succeeded", body);
+      setStatus(JSON.stringify(body, null, 2));
+      setStatusTone("success");
     } catch (error) {
       setStatus(error.message);
       setStatusTone("error");
+    } finally {
+      setBusy(false);
     }
-  }
-
-  async function submitFlow() {
-    console.log("[u2sso-sample] submit button clicked", {
-      challengeReady: Boolean(challengeData),
-      flow,
-      hasPayload: Boolean(payload)
-    });
-
-    if (!challengeData) {
-      return;
-    }
-
-    let parsedPayload;
-
-    try {
-      parsedPayload = JSON.parse(payload);
-    } catch (error) {
-      setStatus("Payload must be valid JSON.");
-      setStatusTone("error");
-      return;
-    }
-
-    const response = await fetch(`/api/${flow}`, {
-      body: JSON.stringify({
-        challengeId: challengeData.challengeId,
-        serviceName: challengeData.serviceName,
-        [flow === "signup" ? "registrationPayload" : "loginPayload"]: parsedPayload
-      }),
-      headers: {
-        "Content-Type": "application/json"
-      },
-      method: "POST"
-    });
-    const body = await response.json();
-    console.log("[u2sso-sample] server response received", {
-      body,
-      flow,
-      ok: response.ok,
-      status: response.status
-    });
-
-    if (!response.ok) {
-      setStatus(body.error || "Flow failed");
-      setStatusTone("error");
-      return;
-    }
-
-    console.log("[u2sso-sample] submit to server succeeded", body);
-    setStatus(JSON.stringify(body, null, 2));
-    setStatusTone("success");
   }
 
   return (
     <>
       <section className="hero">
-        <p className="meta">{flow === "signup" ? "Signup" : "Login"} flow</p>
-        <h1>{flow === "signup" ? "Sign up with U2SSO" : "Log in with U2SSO"}</h1>
+        <p className="meta">U2SSO Pass</p>
+        <h1>{flow === "signup" ? "Create account" : "Welcome back"}</h1>
         <p>
-          This page requests proof and signature payloads from the extension. The extension also
-          registers the master identity on-chain through this service API before the signup flow
-          completes.
+          {flow === "signup"
+            ? "Connect your vault to create a service identity."
+            : "Use your saved service identity to sign in."}
         </p>
         <div className="links">
           <Link className="linkButton secondary" href={flow === "signup" ? "/login" : "/signup"}>
-            {flow === "signup" ? "Go to login" : "Go to signup"}
+            {flow === "signup" ? "Switch to sign in" : "Switch to sign up"}
           </Link>
           <Link className="linkButton secondary" href="/">
-            Back home
+            About U2SSO
           </Link>
         </div>
       </section>
 
       <section className="grid">
         <article className="panel">
-          <h2>Request</h2>
-          <p className="meta">
-            Challenge ID: {challengeData?.challengeId || "loading"}
-            <br />
-            Challenge: {challengeData?.challenge || "loading"}
-            <br />
-            Service: {challengeData?.serviceName || "loading"}
-          </p>
-
+          <h2>{flow === "signup" ? "Sign up" : "Sign in"}</h2>
+          <p className="meta">Service: {challengeData?.serviceName || "loading"}</p>
           <div className="stack">
             <button
+              className="primaryAction"
+              disabled={busy || !challengeData}
               onClick={() => {
-                console.log("[u2sso-sample] raw button onClick fired", { flow });
-                setStatus("Request button clicked.");
-                setStatusTone("");
-                void requestFromExtension();
+                console.log("[u2sso-sample] primary button onClick fired", { flow });
+                void runFlow();
               }}
               type="button"
             >
-              Request from extension
-            </button>
-            <button onClick={submitFlow} type="button">
-              Submit to server
+              {busy
+                ? "Waiting for approval..."
+                : flow === "signup"
+                  ? "Sign up with U2SSO Pass"
+                  : "Sign in with U2SSO Pass"}
             </button>
           </div>
         </article>
 
         <article className="panel">
-          <h2>Payload</h2>
+          <h2>Activity</h2>
+          <div className="statusGroup">
+            <p className="meta">Challenge ID: {challengeData?.challengeId || "loading"}</p>
+            <p className="meta">Challenge: {challengeData?.challenge || "loading"}</p>
+          </div>
           <textarea
+            className="payloadBox"
             onChange={(event) => setPayload(event.target.value)}
-            placeholder={`Paste the ${flow} payload here`}
+            placeholder={`Payload will appear here after approval`}
             value={payload}
           />
           {status ? <pre className={`status ${statusTone}`}>{status}</pre> : null}
