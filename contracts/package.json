@@ -1,0 +1,17 @@
+{
+  "name": "u2sso-contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hardhat contract package for the U2SSO master identity registry",
+  "scripts": {
+    "clean": "hardhat clean",
+    "compile": "hardhat compile",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "node": "hardhat node",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.16"
+  }
+}
