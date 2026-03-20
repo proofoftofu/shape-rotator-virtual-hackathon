@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { createExtensionResponse } from "./messageBridge.js";
 import {
   createOrLoadIdentity,
+  getStoredChildCredentials,
   getStoredIdentity,
+  previewChildCredential,
+  saveStoredChildCredential,
   removeStoredIdentity
 } from "./experimentController.js";
 
@@ -37,14 +40,16 @@ export default function App() {
   const [identityState, setIdentityState] = useState(null);
   const [hasStoredIdentity, setHasStoredIdentity] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null);
+  const [approvalChildCredential, setApprovalChildCredential] = useState(null);
+  const [childCredentials, setChildCredentials] = useState([]);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    getStoredIdentity()
-      .then((storedIdentity) => {
+    Promise.all([getStoredIdentity(), getStoredChildCredentials()])
+      .then(([storedIdentity, storedChildCredentials]) => {
         if (cancelled) {
           return;
         }
@@ -53,6 +58,8 @@ export default function App() {
           setIdentityState(storedIdentity);
           setHasStoredIdentity(true);
         }
+
+        setChildCredentials(storedChildCredentials || []);
       })
       .catch((readError) => {
         if (!cancelled) {
@@ -92,6 +99,31 @@ export default function App() {
     };
   }, [approvalRequestId, isApprovalMode]);
 
+  useEffect(() => {
+    if (!isApprovalMode || !pendingRequest || !identityState?.masterSecret) {
+      setApprovalChildCredential(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    previewChildCredential(identityState.masterSecret, pendingRequest.serviceName)
+      .then((childCredential) => {
+        if (!cancelled) {
+          setApprovalChildCredential(childCredential);
+        }
+      })
+      .catch((previewError) => {
+        if (!cancelled) {
+          setError(previewError instanceof Error ? previewError.message : String(previewError));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [approvalRequestId, identityState?.masterSecret, isApprovalMode, pendingRequest]);
+
   async function withAction(actionLabel, work) {
     setBusyAction(actionLabel);
     setError("");
@@ -118,6 +150,7 @@ export default function App() {
       await removeStoredIdentity();
       setIdentityState(null);
       setHasStoredIdentity(false);
+      setChildCredentials([]);
     });
   }
 
@@ -128,6 +161,24 @@ export default function App() {
 
     await withAction("approve-request", async () => {
       const response = await createExtensionResponse(pendingRequest);
+      if (pendingRequest.flow === "signup") {
+        await saveStoredChildCredential(
+          {
+            spkCommitment: approvalChildCredential?.spkCommitment || response.payload?.spkCommitment,
+            spkPublicKey: approvalChildCredential?.spkPublicKey || response.payload?.spkPublicKey,
+            serviceName: pendingRequest.serviceName
+          }
+        );
+        setChildCredentials((current) => {
+          const nextEntries = current.filter((entry) => entry.serviceName !== pendingRequest.serviceName);
+          nextEntries.unshift({
+            commitment: approvalChildCredential?.spkCommitment || response.payload?.spkCommitment,
+            publicKey: approvalChildCredential?.spkPublicKey || response.payload?.spkPublicKey,
+            serviceName: pendingRequest.serviceName
+          });
+          return nextEntries.slice(0, 5);
+        });
+      }
       await runtimeMessage({
         requestId: pendingRequest.requestId,
         response,
@@ -205,6 +256,16 @@ export default function App() {
                 <div>Service: {pendingRequest?.serviceName || "Loading..."}</div>
                 <div className="mt-1">Origin: {pendingRequest?.origin || "Loading..."}</div>
                 <div className="mt-1">Challenge: {pendingRequest?.challenge || "Loading..."}</div>
+                <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 px-3 py-3">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-shell/60">
+                    Child public key
+                  </div>
+                  <div className="mt-2 break-all font-mono text-xs leading-5 text-shell">
+                    {approvalChildCredential?.spkPublicKey ||
+                      childCredentials.find((entry) => entry.serviceName === pendingRequest?.serviceName)?.publicKey ||
+                      "Load master key and approve signup first"}
+                  </div>
+                </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
@@ -251,6 +312,37 @@ export default function App() {
                   Commitment: {shorten(identityState.masterIdentity.commitment, 18, 12)}
                 </div>
               ) : null}
+            </div>
+            <div className="mt-4 rounded-3xl border border-white/10 bg-white/6 px-4 py-4">
+              <div className="text-[11px] uppercase tracking-[0.26em] text-shell/60">
+                Child credentials
+              </div>
+              <div className="mt-3 space-y-3">
+                {childCredentials.length > 0 ? (
+                  childCredentials.map((entry) => (
+                    <div
+                      className="rounded-2xl border border-white/10 bg-black/15 px-3 py-3"
+                      key={entry.serviceName}
+                    >
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-shell/55">
+                        {entry.serviceName}
+                      </div>
+                      <div className="mt-2 break-all font-mono text-xs leading-5 text-shell">
+                        {entry.publicKey}
+                      </div>
+                      {entry.commitment ? (
+                        <div className="mt-2 text-[11px] uppercase tracking-[0.22em] text-shell/50">
+                          {shorten(entry.commitment, 14, 10)}
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-sm leading-6 text-shell/70">
+                    Derive a child credential by approving a sample request.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

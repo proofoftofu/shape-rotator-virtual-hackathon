@@ -13,6 +13,7 @@ const {
 } = logicBrowserCore;
 
 const STORAGE_KEY = "u2sso.masterSecretHex";
+const CHILD_CREDENTIALS_KEY = "u2sso.childCredentials";
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
 
 function bytesToHex(bytes) {
@@ -108,6 +109,39 @@ function createBrowserStorage() {
   };
 }
 
+export async function getStoredChildCredentials(options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  const stored = await storage.get(CHILD_CREDENTIALS_KEY);
+  const value = stored[CHILD_CREDENTIALS_KEY];
+
+  return Array.isArray(value) ? value : [];
+}
+
+export async function saveStoredChildCredential(childCredential, options = {}) {
+  const storage = options.storage || createBrowserStorage();
+  const current = await getStoredChildCredentials({ storage });
+  const nextCredential = {
+    commitment: childCredential.spkCommitment,
+    publicKey: childCredential.spkPublicKey,
+    serviceName: childCredential.serviceName
+  };
+  const nextEntries = current.filter((entry) => entry.serviceName !== nextCredential.serviceName);
+  nextEntries.unshift(nextCredential);
+  await storage.set({ [CHILD_CREDENTIALS_KEY]: nextEntries });
+  return nextEntries;
+}
+
+export async function removeStoredChildCredentials(options = {}) {
+  const storage = options.storage || createBrowserStorage();
+
+  if (typeof storage.remove === "function") {
+    await storage.remove(CHILD_CREDENTIALS_KEY);
+    return;
+  }
+
+  await storage.set({ [CHILD_CREDENTIALS_KEY]: undefined });
+}
+
 export async function getStoredIdentity(options = {}) {
   const storage = options.storage || createBrowserStorage();
   const stored = await storage.get(STORAGE_KEY);
@@ -134,10 +168,12 @@ export async function removeStoredIdentity(options = {}) {
 
   if (typeof storage.remove === "function") {
     await storage.remove(STORAGE_KEY);
+    await storage.remove(CHILD_CREDENTIALS_KEY);
     return;
   }
 
   await storage.set({ [STORAGE_KEY]: undefined });
+  await storage.set({ [CHILD_CREDENTIALS_KEY]: undefined });
 }
 
 function resolveSnarkArtifacts(runtimeBaseUrl = "") {
@@ -235,12 +271,17 @@ export async function runExtensionExperiment(options = {}) {
   };
 }
 
+export async function previewChildCredential(masterSecret, serviceName) {
+  return deriveChildCredential(masterSecret, serviceName);
+}
+
 export {
   DEMO_EXTENSION_MASTER_SECRET,
   DEFAULT_GROUP_SECRETS,
   DEFAULT_LOGIN_CHALLENGE,
   DEFAULT_REGISTRATION_CHALLENGE,
   DEFAULT_SERVICE_NAME,
+  CHILD_CREDENTIALS_KEY,
   STORAGE_KEY,
   createBrowserStorage,
   hexToBytes,
