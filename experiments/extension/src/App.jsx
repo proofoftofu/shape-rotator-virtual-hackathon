@@ -240,7 +240,7 @@ export default function App() {
 
   if (isApprovalMode) {
     return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(197,92,59,0.24),_transparent_35%),linear-gradient(160deg,_#f4efe3_0%,_#efe4d0_45%,_#d6c2a1_100%)] px-4 py-5 font-body text-ink">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
           <section className="rounded-[28px] border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-5 text-shell shadow-[0_22px_60px_rgba(15,23,22,0.22)]">
             <div className="text-[11px] uppercase tracking-[0.34em] text-shell/65">
@@ -288,43 +288,37 @@ export default function App() {
 
   if (!hasStoredIdentity) {
     return (
-      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(197,92,59,0.24),_transparent_35%),linear-gradient(160deg,_#f4efe3_0%,_#efe4d0_45%,_#d6c2a1_100%)] px-4 py-5 font-body text-ink">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
         <div className="mx-auto w-full max-w-md">
-          <section className="rounded-[28px] border border-white/50 bg-shell/80 p-5 shadow-panel backdrop-blur">
-            <p className="text-xs uppercase tracking-[0.35em] text-pine/80">Chrome Popup</p>
-            <h1 className="mt-2 font-display text-3xl leading-tight text-ink">
-              U2SSO vault experiment
+          <section className="rounded-[28px] border border-white/10 bg-slate-950/75 p-5 shadow-panel backdrop-blur">
+            <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">U2SSO Pass</p>
+            <h1 className="mt-2 font-display text-3xl leading-tight text-slate-100">
+              Create your vault
             </h1>
-            <p className="mt-3 text-sm leading-6 text-ink/75">
-              This popup creates or loads one master secret, persists it in the extension vault,
-              and displays the master public key like a wallet address. The sample app provides the
-              service challenge when a sign up or sign in flow starts; the extension only stores the
-              vault identity and approves sample requests.
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              Create or load your vault once, then use it across every supported service.
             </p>
-            <div className="mt-5 rounded-[28px] border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-5 text-shell shadow-[0_22px_60px_rgba(15,23,22,0.22)]">
+            <div className="mt-5 rounded-[28px] border border-white/10 bg-slate-900/70 p-5 text-slate-100 shadow-[0_22px_60px_rgba(0,0,0,0.32)]">
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.34em] text-shell/65">
-                    Vault address
+                  <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">
+                    Vault
                   </div>
-                  <div className="mt-2 font-display text-xl text-shell">Setup</div>
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-shell/60">
-                  Setup
+                  <div className="mt-2 font-display text-xl text-slate-100">New vault</div>
                 </div>
               </div>
-              <div className="mt-5 rounded-3xl border border-white/10 bg-white/6 px-4 py-4">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-shell/60">
-                  Master public key
+              <div className="mt-5 rounded-3xl border border-white/10 bg-slate-950/80 px-4 py-4">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                  Key address
                 </div>
-                <div className="mt-2 break-all font-mono text-sm leading-6 text-shell">
-                  Create a master key to reveal the address
+                <div className="mt-2 break-all font-mono text-sm leading-6 text-slate-100">
+                  Create a vault to reveal the key address
                 </div>
               </div>
             </div>
             <div className="mt-5 grid grid-cols-1 gap-3">
               <button
-                className="rounded-2xl bg-pine px-4 py-3 text-sm font-semibold text-shell transition hover:bg-pine/90 disabled:cursor-not-allowed disabled:bg-pine/50"
+                className="rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-cyan-500/50"
                 disabled={Boolean(busyAction)}
                 onClick={handleCreateOrLoadIdentity}
               >
@@ -332,7 +326,7 @@ export default function App() {
               </button>
             </div>
             {error ? (
-              <div className="mt-4 rounded-2xl border border-ember/20 bg-ember/10 px-4 py-3 text-sm text-ember">
+              <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                 {error}
               </div>
             ) : null}
@@ -343,26 +337,25 @@ export default function App() {
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(197,92,59,0.24),_transparent_35%),linear-gradient(160deg,_#f4efe3_0%,_#efe4d0_45%,_#d6c2a1_100%)] px-4 py-5 font-body text-ink">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_28%),radial-gradient(circle_at_20%_20%,_rgba(16,185,129,0.08),_transparent_24%),linear-gradient(180deg,_#0a0f14_0%,_#0b1117_55%,_#070a0f_100%)] px-4 py-5 font-body text-slate-100">
       <div className="mx-auto w-full max-w-md">
-        <section className="rounded-[28px] border border-white/50 bg-shell/80 p-5 shadow-panel backdrop-blur">
-          <p className="text-xs uppercase tracking-[0.35em] text-pine/80">Chrome Popup</p>
-          <h1 className="mt-2 font-display text-3xl leading-tight text-ink">
-            U2SSO vault experiment
+        <section className="rounded-[28px] border border-white/10 bg-slate-950/75 p-5 shadow-panel backdrop-blur">
+          <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">U2SSO Pass</p>
+          <h1 className="mt-2 font-display text-3xl leading-tight text-slate-100">
+            Your vault
           </h1>
-          <p className="mt-3 text-sm leading-6 text-ink/75">
-            This popup keeps one persistent master key in the extension vault. Main shows the
-            master vault status; Services shows the saved service-specific child accounts.
+          <p className="mt-3 text-sm leading-6 text-slate-300">
+            Main shows your vault. Services shows the service identities you have approved.
           </p>
 
-          <section className="mt-5 rounded-[28px] border border-white/50 bg-shell/80 p-5 shadow-panel backdrop-blur">
+          <section className="mt-5 rounded-[28px] border border-white/10 bg-slate-950/75 p-5 shadow-panel backdrop-blur">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 rounded-full border border-ink/10 bg-white/70 p-1 text-sm text-ink">
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 text-sm text-slate-200">
                 <button
                   className={`rounded-full px-4 py-2 transition ${
                     activeTab === "main"
-                      ? "bg-pine text-shell shadow-sm"
-                      : "text-ink/70 hover:text-ink"
+                      ? "bg-slate-100 text-slate-950 shadow-sm"
+                      : "text-slate-300 hover:text-slate-100"
                   }`}
                   onClick={() => setActiveTab("main")}
                   type="button"
@@ -372,8 +365,8 @@ export default function App() {
                 <button
                   className={`rounded-full px-4 py-2 transition ${
                     activeTab === "services"
-                      ? "bg-pine text-shell shadow-sm"
-                      : "text-ink/70 hover:text-ink"
+                      ? "bg-slate-100 text-slate-950 shadow-sm"
+                      : "text-slate-300 hover:text-slate-100"
                   }`}
                   onClick={() => setActiveTab("services")}
                   type="button"
@@ -381,37 +374,34 @@ export default function App() {
                   Services
                 </button>
               </div>
-              <div className="text-right text-xs uppercase tracking-[0.28em] text-pine/70">
+              <div className="text-right text-xs uppercase tracking-[0.28em] text-slate-400">
                 {hasServices ? `${childCredentials.length} saved` : "No services yet"}
               </div>
             </div>
 
             {activeTab === "main" ? (
-              <div className="mt-5 rounded-3xl border border-ink/10 bg-white/50 px-4 py-5">
+              <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 px-4 py-5">
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.35em] text-pine/80">Vault address</p>
-                    <h2 className="mt-2 font-display text-2xl text-ink">Master vault</h2>
-                  </div>
-                  <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-emerald-200">
-                    Secured
+                    <p className="text-xs uppercase tracking-[0.35em] text-cyan-300/80">Vault address</p>
+                    <h2 className="mt-2 font-display text-2xl text-slate-100">Vault key</h2>
                   </div>
                 </div>
-                <div className="mt-4 rounded-3xl border border-ink/10 bg-white px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-pine/70">
-                    Master public key
+                <div className="mt-4 rounded-3xl border border-white/10 bg-slate-950/80 px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                    Key address
                   </div>
-                  <div className="mt-2 break-all font-mono text-sm leading-6 text-ink">
+                  <div className="mt-2 break-all font-mono text-sm leading-6 text-slate-100">
                     {identityState?.masterIdentity?.publicKey?.join(",")}
                   </div>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-ink/75">
-                  This is the persistent root credential stored in the extension. Create it once,
-                  use it across services, and remove it only when you want to start a new vault.
+                <p className="mt-3 text-sm leading-6 text-slate-300">
+                  This vault key is your root identity. Use it across services and remove it only
+                  when you want to start fresh.
                 </p>
                 <div className="mt-4 grid grid-cols-1 gap-3">
                   <button
-                    className="rounded-2xl border border-ink/15 bg-white/70 px-4 py-3 text-sm font-semibold text-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={Boolean(busyAction)}
                     onClick={handleRemoveIdentity}
                   >
@@ -423,9 +413,9 @@ export default function App() {
 
             {activeTab === "services" ? (
               <div className="mt-5 space-y-3">
-                <p className="text-sm leading-6 text-ink/75">
-                  Approved signups create one service-specific child public key here. The list
-                  behaves like a password manager for service accounts.
+                  <p className="text-sm leading-6 text-slate-300">
+                  Approved signups create one service identity card here. The list behaves like a
+                  wallet of service accounts.
                 </p>
                 {childCredentials.length > 0 ? (
                   childCredentials.map((entry) => (
@@ -433,37 +423,37 @@ export default function App() {
                       className="rounded-3xl border border-ink/10 bg-[linear-gradient(180deg,rgba(16,24,21,0.98),rgba(28,38,35,0.94))] p-4 text-shell shadow-[0_18px_40px_rgba(15,23,22,0.16)]"
                       key={entry.serviceName}
                     >
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] uppercase tracking-[0.26em] text-shell/55">
-                            {entry.serviceName}
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="text-[11px] uppercase tracking-[0.26em] text-slate-400">
+                              {entry.serviceName}
+                            </div>
+                            <div className="mt-1 text-sm text-slate-200">Identity card</div>
                           </div>
-                          <div className="mt-1 text-sm text-shell/80">Service credential</div>
+                          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-slate-400">
+                            Saved
+                          </div>
                         </div>
-                        <div className="rounded-full border border-white/10 bg-white/6 px-3 py-1 text-[11px] uppercase tracking-[0.22em] text-shell/60">
-                          Saved
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
+                          <div className="text-[11px] uppercase tracking-[0.24em] text-slate-400">
+                            Service key
+                          </div>
+                          <div className="mt-2 break-all font-mono text-xs leading-5 text-slate-100">
+                            {entry.publicKey}
+                          </div>
                         </div>
+                        {entry.commitment ? (
+                          <div className="mt-3 text-xs leading-5 text-slate-400">
+                            Commitment: {shorten(entry.commitment, 14, 10)}
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="mt-4 rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.24em] text-shell/55">
-                          Public key
-                        </div>
-                        <div className="mt-2 break-all font-mono text-xs leading-5 text-shell">
-                          {entry.publicKey}
-                        </div>
-                      </div>
-                      {entry.commitment ? (
-                        <div className="mt-3 text-xs leading-5 text-shell/65">
-                          Commitment: {shorten(entry.commitment, 14, 10)}
-                        </div>
-                      ) : null}
+                    ))
+                  ) : (
+                    <div className="rounded-3xl border border-dashed border-white/10 bg-white/5 px-4 py-6 text-sm leading-6 text-slate-300">
+                      No service credentials yet. Approve a signup request to save one.
                     </div>
-                  ))
-                ) : (
-                  <div className="rounded-3xl border border-dashed border-ink/15 bg-white/50 px-4 py-6 text-sm leading-6 text-ink/70">
-                    No service credentials yet. Approve a signup request to save one.
-                  </div>
-                )}
+                  )}
               </div>
             ) : null}
           </section>

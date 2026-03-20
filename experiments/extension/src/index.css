@@ -3,14 +3,22 @@
 @tailwind utilities;
 
 :root {
-  color: #1f2a2a;
-  background: #f4efe3;
+  color: #e5e7eb;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.08), transparent 24%),
+    linear-gradient(180deg, #0a0f14 0%, #0b1117 55%, #070a0f 100%);
 }
 
 body {
   margin: 0;
   min-width: 380px;
   min-height: 640px;
+  color: #e5e7eb;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 28%),
+    radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.08), transparent 24%),
+    linear-gradient(180deg, #0a0f14 0%, #0b1117 55%, #070a0f 100%);
 }
 
 * {
