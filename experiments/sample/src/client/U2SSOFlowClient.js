@@ -10,7 +10,6 @@ export default function U2SSOFlowClient({ flow }) {
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState("");
   const [result, setResult] = useState(null);
-  const [logEntries, setLogEntries] = useState([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -62,12 +61,6 @@ export default function U2SSOFlowClient({ flow }) {
     try {
       const nextPayload = await requestPayloadFromExtension(flow, challengeData);
       setPayload(JSON.stringify(nextPayload, null, 2));
-      setLogEntries((current) => [
-        {
-          label: "step.1.payload",
-          value: nextPayload
-        }
-      ]);
       console.log("[u2sso-sample] extension payload received", {
         flow,
         hasPayload: Boolean(nextPayload)
@@ -95,15 +88,6 @@ export default function U2SSOFlowClient({ flow }) {
       if (!response.ok) {
         setStatus(body.error || "Flow failed");
         setStatusTone("error");
-        setLogEntries((current) => [
-          {
-            label: "step.2.result",
-            value: {
-              error: body.error || "Flow failed",
-              status: response.status
-            }
-          }
-        ]);
         return;
       }
 
@@ -111,23 +95,9 @@ export default function U2SSOFlowClient({ flow }) {
       setStatus(JSON.stringify(body, null, 2));
       setStatusTone("success");
       setResult(body);
-      setLogEntries((current) => [
-        {
-          label: "step.2.result",
-          value: body
-        }
-      ]);
     } catch (error) {
       setStatus(error.message);
       setStatusTone("error");
-      setLogEntries((current) => [
-        {
-          label: "step.2.result",
-          value: {
-            message: error.message
-          }
-        }
-      ]);
     } finally {
       setBusy(false);
     }
@@ -222,36 +192,30 @@ export default function U2SSOFlowClient({ flow }) {
             <code>{challengeData?.challenge || "loading"}</code>
           </div>
           <div className="logStream">
-            {logEntries.map((entry) => (
-              <div className="logItem" key={`${entry.label}-${JSON.stringify(entry.value).slice(0, 24)}`}>
-                <div className="logLabel">{entry.label}</div>
-                <pre>{JSON.stringify(entry.value, null, 2)}</pre>
+            <div className="jsonSection">
+              <div className="jsonSectionHeader">
+                <div>
+                  <p className="eyebrow">Step 1</p>
+                  <h3>Payload prepared for the service</h3>
+                </div>
+                <p className="meta">
+                  This is the request body created after extension approval or demo fallback.
+                </p>
               </div>
-            ))}
-          </div>
-          <div className="jsonSection">
-            <div className="jsonSectionHeader">
-              <div>
-                <p className="eyebrow">Step 1</p>
-                <h3>Payload prepared for the service</h3>
-              </div>
-              <p className="meta">
-                This is the request body created after extension approval or demo fallback.
-              </p>
+              <pre className="jsonCard jsonCardNeutral">
+                {payload || "Payload will appear here after approval"}
+              </pre>
             </div>
-            <pre className="jsonCard jsonCardNeutral">
-              {payload || "Payload will appear here after approval"}
-            </pre>
-          </div>
-          <div className="jsonSection">
-            <div className="jsonSectionHeader">
-              <div>
-                <p className="eyebrow">Step 2</p>
-                <h3>Server result</h3>
+            <div className="jsonSection">
+              <div className="jsonSectionHeader">
+                <div>
+                  <p className="eyebrow">Step 2</p>
+                  <h3>Server result</h3>
+                </div>
+                <p className="meta">This is the final response from signup or sign in.</p>
               </div>
-              <p className="meta">This is the final response from signup or sign in.</p>
+              {status ? <pre className={`status ${statusTone}`}>{status}</pre> : null}
             </div>
-            {status ? <pre className={`status ${statusTone}`}>{status}</pre> : null}
           </div>
         </article>
       </section>
