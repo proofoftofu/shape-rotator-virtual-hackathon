@@ -24,9 +24,8 @@ const DEMO_SEMAPHORE_ARTIFACTS = {
 async function getRegistryGroup() {
   const hasContractConfig = Boolean(
     process.env.U2SSO_SAMPLE_RPC_URL ||
-    process.env.U2SSO_SAMPLE_PRC_URL ||
-    process.env.U2SSO_PRC ||
-    process.env.PRC ||
+    process.env.U2SSO_RPC ||
+    process.env.RPC ||
     process.env.U2SSO_SAMPLE_PRIVATE_KEY ||
     process.env.U2SSO_PRIVATE_KEY ||
     process.env.PRIVATE_KEY ||

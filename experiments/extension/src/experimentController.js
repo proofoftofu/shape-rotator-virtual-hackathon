@@ -18,7 +18,7 @@ const CHILD_CREDENTIALS_KEY = "u2sso.childCredentials";
 const MASTER_REGISTRATION_STATE_KEY = "u2sso.masterRegistrationState";
 const REGISTRY_ORIGIN_KEY = "u2sso.registryOrigin";
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
-const DEFAULT_REGISTRY_ORIGIN = "http://127.0.0.1:3000";
+const DEFAULT_REGISTRY_ORIGIN = "https://shape-rotator-virtual-hackathon.vercel.app";
 
 function bytesToHex(bytes) {
   return Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
