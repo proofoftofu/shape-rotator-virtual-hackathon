@@ -1,6 +1,6 @@
 # Sample Experiment
 
-This experiment adds a minimal Next.js sample service in `workspace/experiments/sample` and reuses the existing logic from `workspace/experiments/logic` for server-side verification.
+This experiment adds a minimal Next.js sample service in `workspace/experiments/sample` and vendors the U2SSO proof logic locally so the sample can run standalone.
 
 ## What Was Implemented
 
@@ -12,12 +12,12 @@ This experiment adds a minimal Next.js sample service in `workspace/experiments/
   - enforces one nullifier per service
   - verifies login signatures against the stored service public key
   - creates an in-memory session token after successful login
-  - wires explicit Semaphore artifact paths to `workspace/experiments/logic/artifacts` so Next.js server bundling does not break proof generation
+  - wires explicit Semaphore artifact paths to `workspace/experiments/sample/src/server/artifacts` so Next.js server bundling does not break proof generation
 - A browser `window.postMessage` contract for the future extension integration:
   - request: `source = "u2sso-sample"`, `type = "u2sso:request"`, `flow`, `challenge`, `serviceName`
   - response: `source = "u2sso-extension"`, `flow`, `payload`
 - Extension-first payload request handling in the UI, with automatic fallback to demo payload generation when the extension is unavailable.
-- Automated tests that execute signup and login using real payloads from the logic experiment and cover extension/fallback request selection.
+- Automated tests that execute signup and login using real payloads from the vendored local logic runtime and cover extension/fallback request selection.
 
 ## Files
 
@@ -42,7 +42,7 @@ Open:
 - `http://localhost:3000/signup`
 - `http://localhost:3000/login`
 
-The default request flow now tries the real extension bridge first. If the extension does not respond, the UI falls back automatically to demo payload generation using `workspace/experiments/logic`. The manual demo button remains available when you want to force the fallback path directly.
+The default request flow now tries the real extension bridge first. If the extension does not respond, the UI falls back automatically to demo payload generation using the sample’s vendored logic runtime. The manual demo button remains available when you want to force the fallback path directly.
 
 ## Current Extension Status
 
@@ -79,4 +79,4 @@ The sample service experiment confirms that the current JavaScript U2SSO logic c
 
 - The demo registry is an in-memory fixture group derived from `DEFAULT_GROUP_SECRETS`, not the on-chain registry from the original Go sample.
 - Account and session state are in-memory only and reset on server restart.
-- Tests verify the shared service logic and payload-selection behavior directly; they do not boot the full Next.js runtime.
+- Tests verify the vendored sample logic and payload-selection behavior directly; they do not boot the full Next.js runtime.

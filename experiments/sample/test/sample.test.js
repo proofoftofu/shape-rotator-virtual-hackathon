@@ -13,7 +13,7 @@ const {
 } = require("../src/server/demoService");
 const { requestPayloadWithFallback } = require("../src/client/payloadRequest");
 const { resetStore } = require("../src/server/demoStore");
-const { terminateProofWorkers } = require("../../logic/src");
+const { terminateProofWorkers } = require("../src/server/u2ssoLogic");
 
 test.beforeEach(() => {
   resetStore();

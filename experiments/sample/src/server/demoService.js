@@ -17,8 +17,8 @@ const {
 const contractClient = require("./contractClient");
 const DEMO_EXTENSION_MASTER_SECRET = DEFAULT_GROUP_SECRETS[0];
 const DEMO_SEMAPHORE_ARTIFACTS = {
-  wasm: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.wasm"),
-  zkey: path.resolve(process.cwd(), "..", "logic", "artifacts", "semaphore-2.zkey")
+  wasm: path.resolve(__dirname, "artifacts", "semaphore-2.wasm"),
+  zkey: path.resolve(__dirname, "artifacts", "semaphore-2.zkey")
 };
 
 async function getRegistryGroup() {
