@@ -14,8 +14,6 @@ const nextConfig = {
         ...(config.resolve.alias || {}),
         "@semaphore-protocol/proof$": path.resolve(
           process.cwd(),
-          "..",
-          "logic",
           "node_modules",
           "@semaphore-protocol",
           "proof",
