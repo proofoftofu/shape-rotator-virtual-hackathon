@@ -19,7 +19,33 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
-
+      <section className="panel installPanel">
+        <div className="referenceBlock">
+          <p className="eyebrow">Overview reference</p>
+          <h2>Chrome extension version of Anonymous Self-Credentials &amp; SSO</h2>
+          <p className="meta">
+            Based on the paper{" "}
+            <Link
+              className="referenceLink"
+              href="https://eprint.iacr.org/2025/618.pdf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Anonymous Self-Credentials &amp; SSO
+            </Link>{" "}
+            and using{" "}
+            <Link
+              className="referenceLink"
+              href="https://github.com/BoquilaID/U2SSO"
+              target="_blank"
+              rel="noreferrer"
+            >
+              BoquilaID/U2SSO
+            </Link>{" "}
+            as the implementation reference.
+          </p>
+        </div>
+      </section>
     </>
   );
 }

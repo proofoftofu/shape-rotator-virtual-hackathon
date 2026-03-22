@@ -44,6 +44,68 @@ a {
   padding: 32px 20px 64px;
 }
 
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 12px 30px rgba(18, 33, 26, 0.06);
+}
+
+.topbarBrand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.topbarBrand strong {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.topbarNav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.topbarLink {
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.topbarLink:hover {
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.referenceLink {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.referenceBlock a,
+.referenceBlock a:visited,
+.referenceBlock a:hover,
+.referenceBlock a:active {
+  text-decoration: none;
+}
+
+.referenceLink:hover {
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+
 .hero {
   display: grid;
   gap: 18px;
@@ -53,6 +115,14 @@ a {
   backdrop-filter: blur(12px);
   border-radius: 28px;
   box-shadow: var(--panel-shadow);
+}
+
+.heroSlim {
+  padding: 24px 28px;
+}
+
+.heroSlim p {
+  max-width: 70ch;
 }
 
 .hero h1,
@@ -159,6 +229,19 @@ button:hover {
   background: var(--card);
   backdrop-filter: blur(12px);
   box-shadow: var(--panel-shadow);
+}
+
+.installPanel {
+  margin-top: 24px;
+}
+
+.referenceBlock {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+}
+
+.referenceBlock h2 {
+  margin: 6px 0 8px;
 }
 
 .formRow {
@@ -308,6 +391,17 @@ pre {
   font-size: 1.18rem;
 }
 
+.installSteps {
+  margin: 16px 0 0;
+  padding-left: 20px;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.installSteps li + li {
+  margin-top: 6px;
+}
+
 .jsonSection {
   margin-top: 18px;
 }
@@ -325,6 +419,18 @@ pre {
 }
 
 @media (max-width: 720px) {
+  .topbar {
+    border-radius: 24px;
+    padding: 14px;
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .topbarNav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
   .hero,
   .panel {
     padding: 20px;

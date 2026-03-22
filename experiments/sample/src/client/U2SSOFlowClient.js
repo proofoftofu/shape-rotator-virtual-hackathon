@@ -105,32 +105,53 @@ export default function U2SSOFlowClient({ flow }) {
 
   return (
     <>
-      <section className="hero">
-        <p className="eyebrow">U2SSO Pass</p>
-        <h1>{flow === "signup" ? "Create your service account" : "Sign in to continue"}</h1>
-        <p>
-          {flow === "signup"
-            ? "Create a normal-looking account flow, then hand the technical details to the log panel."
-            : "Use the same clean sign-in surface, with the JSON trail kept visible in a separate panel."}
+      <header className="topbar">
+        <div className="topbarBrand">
+          <p className="eyebrow">U2SSO Pass</p>
+        </div>
+        <nav className="topbarNav" aria-label="Primary">
+          <Link className="topbarLink" href={flow === "signup" ? "/login" : "/signup"}>
+            {flow === "signup" ? "Sign in" : "Sign up"}
+          </Link>
+          <Link className="topbarLink" href="/">
+            Overview
+          </Link>
+        </nav>
+      </header>
+
+      <section className="panel installPanel">
+        <div className="panelHeading">
+          <div>
+            <p className="eyebrow">Extension setup</p>
+            <h2>Install the browser extension</h2>
+          </div>
+          <p className="panelKicker">Required for the real flow</p>
+        </div>
+        <p className="meta">
+          Download the extension ZIP, then follow the Chrome extension setup steps to load it
+          locally. This makes the signup and sign-in demo behave like a real browser extension flow.
         </p>
-        <div className="heroSummary">
-          <div>
-            <span className="summaryLabel">Step</span>
-            <strong>{flow === "signup" ? "Register" : "Authenticate"}</strong>
-          </div>
-          <div>
-            <span className="summaryLabel">Mode</span>
-            <strong>Demo UI with tech logs</strong>
-          </div>
-        </div>
-        <div className="links">
-          <Link className="linkButton secondary" href={flow === "signup" ? "/login" : "/signup"}>
-            {flow === "signup" ? "Switch to sign in" : "Switch to sign up"}
-          </Link>
-          <Link className="linkButton secondary" href="/">
-            About U2SSO
+        <div className="stack">
+          <a className="linkButton" href="/u2sso-pass-extension.zip" download>
+            Download extension ZIP
+          </a>
+          <Link
+            className="linkButton secondary"
+            href="https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Chrome setup guide
           </Link>
         </div>
+        <ol className="installSteps">
+          <li>Download the ZIP from this page.</li>
+          <li>Extract the ZIP into a normal folder on your computer.</li>
+          <li>Open Chrome and go to the extensions page.</li>
+          <li>Turn on Developer mode.</li>
+          <li>Load the unpacked extension from the extracted folder.</li>
+          <li>Return here and try sign up or sign in again.</li>
+        </ol>
       </section>
 
       <section className="grid">
