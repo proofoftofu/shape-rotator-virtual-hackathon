@@ -1,16 +1,12 @@
 "use strict";
 
 const fs = require("node:fs");
-const path = require("node:path");
 const { Contract, JsonRpcProvider, Wallet } = require("ethers");
 
-const DEFAULT_DEPLOYMENT = path.resolve(
-  __dirname,
-  "artifacts",
-  "U2SSORegistry.deployment.json"
-);
+const DEFAULT_DEPLOYMENT = require("./artifacts/U2SSORegistry.deployment.json");
+const DEFAULT_ABI = require("./artifacts/U2SSORegistry.json").abi;
 
-function readDeploymentFile(deploymentPath = DEFAULT_DEPLOYMENT) {
+function readDeploymentFile(deploymentPath) {
   const raw = fs.readFileSync(deploymentPath, "utf8");
   return JSON.parse(raw);
 }
@@ -25,7 +21,7 @@ function getRegistryConfig() {
     process.env.U2SSO_SAMPLE_PRIVATE_KEY ||
     process.env.U2SSO_PRIVATE_KEY ||
     process.env.PRIVATE_KEY;
-  const deploymentPath = process.env.U2SSO_SAMPLE_REGISTRY_DEPLOYMENT || DEFAULT_DEPLOYMENT;
+  const deploymentPath = process.env.U2SSO_SAMPLE_REGISTRY_DEPLOYMENT || null;
   const address = process.env.U2SSO_SAMPLE_REGISTRY_ADDRESS || process.env.U2SSO_ADDRESS;
 
   if (!rpcUrl) {
@@ -36,7 +32,7 @@ function getRegistryConfig() {
     throw new Error("Missing signer env var: U2SSO_SAMPLE_PRIVATE_KEY");
   }
 
-  const deployment = fs.existsSync(deploymentPath) ? readDeploymentFile(deploymentPath) : null;
+  const deployment = deploymentPath ? (fs.existsSync(deploymentPath) ? readDeploymentFile(deploymentPath) : null) : DEFAULT_DEPLOYMENT;
   const resolvedAddress = address || deployment?.address;
 
   if (!resolvedAddress) {
@@ -54,13 +50,9 @@ function getRegistryConfig() {
 
 function toRegistryContract() {
   const config = getRegistryConfig();
-  const deployment = fs.existsSync(config.deploymentPath) ? readDeploymentFile(config.deploymentPath) : null;
   const provider = new JsonRpcProvider(config.rpcUrl);
   const wallet = new Wallet(config.privateKey, provider);
-  const abi =
-    deployment?.abi ||
-    require(path.resolve(__dirname, "artifacts", "U2SSORegistry.json")).abi;
-  const contract = new Contract(config.address, abi, wallet);
+  const contract = new Contract(config.address, DEFAULT_ABI, wallet);
 
   return { contract, provider, wallet };
 }
