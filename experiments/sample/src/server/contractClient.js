@@ -2,19 +2,12 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { createRequire } = require("node:module");
-
-const contractsPackagePath = path.resolve(process.cwd(), "..", "..", "contracts", "package.json");
-const contractsRequire = createRequire(contractsPackagePath);
-const { Contract, JsonRpcProvider, Wallet } = contractsRequire("ethers");
+const { Contract, JsonRpcProvider, Wallet } = require("ethers");
 
 const DEFAULT_DEPLOYMENT = path.resolve(
-  process.cwd(),
-  "..",
-  "..",
-  "contracts",
-  "deployments",
-  "hardhat.json"
+  __dirname,
+  "artifacts",
+  "U2SSORegistry.deployment.json"
 );
 
 function readDeploymentFile(deploymentPath = DEFAULT_DEPLOYMENT) {
@@ -65,7 +58,9 @@ function toRegistryContract() {
   const deployment = fs.existsSync(config.deploymentPath) ? readDeploymentFile(config.deploymentPath) : null;
   const provider = new JsonRpcProvider(config.rpcUrl);
   const wallet = new Wallet(config.privateKey, provider);
-  const abi = deployment?.abi || require(path.resolve(__dirname, "../../../contracts/artifacts/contracts/U2SSORegistry.sol/U2SSORegistry.json")).abi;
+  const abi =
+    deployment?.abi ||
+    require(path.resolve(__dirname, "artifacts", "U2SSORegistry.json")).abi;
   const contract = new Contract(config.address, abi, wallet);
 
   return { contract, provider, wallet };
