@@ -1,5 +1,7 @@
 require("@nomicfoundation/hardhat-toolbox");
 
+const accounts = process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : []
+
 /** @type import("hardhat/config").HardhatUserConfig */
 module.exports = {
   solidity: {
@@ -9,6 +11,12 @@ module.exports = {
         enabled: true,
         runs: 200
       }
+    }
+  },
+  networks: {
+    sepolia: {
+      url: "https://1rpc.io/sepolia",
+      accounts: accounts
     }
   }
 };
