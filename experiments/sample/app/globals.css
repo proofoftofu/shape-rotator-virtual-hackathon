@@ -231,19 +231,6 @@ button:hover {
   box-shadow: var(--panel-shadow);
 }
 
-.installPanel {
-  margin-top: 24px;
-}
-
-.referenceBlock {
-  margin-bottom: 18px;
-  padding-bottom: 18px;
-}
-
-.referenceBlock h2 {
-  margin: 6px 0 8px;
-}
-
 .formRow {
   display: grid;
   gap: 8px;
