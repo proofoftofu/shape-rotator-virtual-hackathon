@@ -9,6 +9,8 @@ export default function U2SSOFlowClient({ flow }) {
   const [payload, setPayload] = useState("");
   const [status, setStatus] = useState("");
   const [statusTone, setStatusTone] = useState("");
+  const [result, setResult] = useState(null);
+  const [logEntries, setLogEntries] = useState([]);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -55,10 +57,17 @@ export default function U2SSOFlowClient({ flow }) {
     setBusy(true);
     setStatus("");
     setStatusTone("");
+    setResult(null);
 
     try {
       const nextPayload = await requestPayloadFromExtension(flow, challengeData);
       setPayload(JSON.stringify(nextPayload, null, 2));
+      setLogEntries((current) => [
+        {
+          label: "step.1.payload",
+          value: nextPayload
+        }
+      ]);
       console.log("[u2sso-sample] extension payload received", {
         flow,
         hasPayload: Boolean(nextPayload)
@@ -86,15 +95,39 @@ export default function U2SSOFlowClient({ flow }) {
       if (!response.ok) {
         setStatus(body.error || "Flow failed");
         setStatusTone("error");
+        setLogEntries((current) => [
+          {
+            label: "step.2.result",
+            value: {
+              error: body.error || "Flow failed",
+              status: response.status
+            }
+          }
+        ]);
         return;
       }
 
       console.log("[u2sso-sample] flow succeeded", body);
       setStatus(JSON.stringify(body, null, 2));
       setStatusTone("success");
+      setResult(body);
+      setLogEntries((current) => [
+        {
+          label: "step.2.result",
+          value: body
+        }
+      ]);
     } catch (error) {
       setStatus(error.message);
       setStatusTone("error");
+      setLogEntries((current) => [
+        {
+          label: "step.2.result",
+          value: {
+            message: error.message
+          }
+        }
+      ]);
     } finally {
       setBusy(false);
     }
@@ -103,13 +136,23 @@ export default function U2SSOFlowClient({ flow }) {
   return (
     <>
       <section className="hero">
-        <p className="meta">U2SSO Pass</p>
-        <h1>{flow === "signup" ? "Create account" : "Welcome back"}</h1>
+        <p className="eyebrow">U2SSO Pass</p>
+        <h1>{flow === "signup" ? "Create your service account" : "Sign in to continue"}</h1>
         <p>
           {flow === "signup"
-            ? "Connect your vault to create a service identity."
-            : "Use your saved service identity to sign in."}
+            ? "Create a normal-looking account flow, then hand the technical details to the log panel."
+            : "Use the same clean sign-in surface, with the JSON trail kept visible in a separate panel."}
         </p>
+        <div className="heroSummary">
+          <div>
+            <span className="summaryLabel">Step</span>
+            <strong>{flow === "signup" ? "Register" : "Authenticate"}</strong>
+          </div>
+          <div>
+            <span className="summaryLabel">Mode</span>
+            <strong>Demo UI with tech logs</strong>
+          </div>
+        </div>
         <div className="links">
           <Link className="linkButton secondary" href={flow === "signup" ? "/login" : "/signup"}>
             {flow === "signup" ? "Switch to sign in" : "Switch to sign up"}
@@ -122,8 +165,18 @@ export default function U2SSOFlowClient({ flow }) {
 
       <section className="grid">
         <article className="panel">
-          <h2>{flow === "signup" ? "Sign up" : "Sign in"}</h2>
-          <p className="meta">Service: {challengeData?.serviceName || "loading"}</p>
+          <div className="panelHeading">
+            <div>
+              <p className="eyebrow">Account access</p>
+              <h2>{flow === "signup" ? "Create account" : "Sign in"}</h2>
+            </div>
+            <p className="panelKicker">Service: {challengeData?.serviceName || "loading"}</p>
+          </div>
+          <p className="meta">
+            {flow === "signup"
+              ? "This is the user-facing path. The JSON is shown elsewhere so the page still feels like a normal product."
+              : "The flow stays simple: press the button, approve the payload, then land on the welcome state."}
+          </p>
           <div className="stack">
             <button
               className="primaryAction"
@@ -137,25 +190,69 @@ export default function U2SSOFlowClient({ flow }) {
               {busy
                 ? "Waiting for approval..."
                 : flow === "signup"
-                  ? "Sign up with U2SSO Pass"
-                  : "Sign in with U2SSO Pass"}
+                  ? "Create account"
+                  : "Sign in"}
             </button>
           </div>
+          {statusTone === "success" && result ? (
+            <div className="welcomeCard">
+              <p className="eyebrow">Welcome</p>
+              <h3>Signed in successfully</h3>
+              <p className="meta">
+                Session established for <strong>{result.serviceName || challengeData?.serviceName}</strong>.
+              </p>
+            </div>
+          ) : null}
         </article>
 
         <article className="panel">
-          <h2>Activity</h2>
-          <div className="statusGroup">
-            <p className="meta">Challenge ID: {challengeData?.challengeId || "loading"}</p>
-            <p className="meta">Challenge: {challengeData?.challenge || "loading"}</p>
+          <div className="panelHeading">
+            <div>
+              <p className="eyebrow">Tech log</p>
+              <h2>JSON and event trail</h2>
+            </div>
+            <p className="panelKicker">Raw detail</p>
           </div>
-          <textarea
-            className="payloadBox"
-            onChange={(event) => setPayload(event.target.value)}
-            placeholder={`Payload will appear here after approval`}
-            value={payload}
-          />
-          {status ? <pre className={`status ${statusTone}`}>{status}</pre> : null}
+          <div className="logMeta">
+            <span>Challenge ID</span>
+            <code>{challengeData?.challengeId || "loading"}</code>
+          </div>
+          <div className="logMeta">
+            <span>Challenge</span>
+            <code>{challengeData?.challenge || "loading"}</code>
+          </div>
+          <div className="logStream">
+            {logEntries.map((entry) => (
+              <div className="logItem" key={`${entry.label}-${JSON.stringify(entry.value).slice(0, 24)}`}>
+                <div className="logLabel">{entry.label}</div>
+                <pre>{JSON.stringify(entry.value, null, 2)}</pre>
+              </div>
+            ))}
+          </div>
+          <div className="jsonSection">
+            <div className="jsonSectionHeader">
+              <div>
+                <p className="eyebrow">Step 1</p>
+                <h3>Payload prepared for the service</h3>
+              </div>
+              <p className="meta">
+                This is the request body created after extension approval or demo fallback.
+              </p>
+            </div>
+            <pre className="jsonCard jsonCardNeutral">
+              {payload || "Payload will appear here after approval"}
+            </pre>
+          </div>
+          <div className="jsonSection">
+            <div className="jsonSectionHeader">
+              <div>
+                <p className="eyebrow">Step 2</p>
+                <h3>Server result</h3>
+              </div>
+              <p className="meta">This is the final response from signup or sign in.</p>
+            </div>
+            {status ? <pre className={`status ${statusTone}`}>{status}</pre> : null}
+          </div>
         </article>
       </section>
     </>

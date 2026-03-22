@@ -1,15 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f6f8f4;
-  --bg-accent: #e5efe0;
-  --ink: #132015;
-  --muted: #5f7062;
-  --card: rgba(255, 255, 255, 0.88);
-  --line: rgba(19, 32, 21, 0.12);
-  --accent: #22c55e;
-  --accent-dark: #16a34a;
-  --success: #15803d;
+  --bg: #eef2f0;
+  --bg-accent: #dde9e3;
+  --ink: #12211a;
+  --muted: #5c6b63;
+  --card: rgba(255, 255, 255, 0.84);
+  --line: rgba(18, 33, 26, 0.12);
+  --accent: #0f766e;
+  --accent-dark: #115e59;
+  --success: #166534;
   --error: #b91c1c;
+  --panel-shadow: 0 26px 60px rgba(18, 33, 26, 0.09);
 }
 
 * {
@@ -24,12 +25,12 @@ body {
 
 body {
   background:
-    radial-gradient(circle at top left, rgba(34, 197, 94, 0.12), transparent 26%),
-    radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.08), transparent 24%),
-    linear-gradient(160deg, var(--bg) 0%, #fdfefc 44%, var(--bg-accent) 100%);
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.13), transparent 24%),
+    radial-gradient(circle at 20% 20%, rgba(132, 204, 188, 0.14), transparent 22%),
+    linear-gradient(160deg, var(--bg) 0%, #fbfcfb 42%, var(--bg-accent) 100%);
   color: var(--ink);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: "IBM Plex Sans", "Segoe UI", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, sans-serif;
 }
 
 a {
@@ -46,19 +47,20 @@ a {
 .hero {
   display: grid;
   gap: 18px;
-  padding: 28px;
+  padding: 32px;
   border: 1px solid var(--line);
   background: var(--card);
   backdrop-filter: blur(12px);
   border-radius: 28px;
-  box-shadow: 0 24px 60px rgba(30, 60, 34, 0.08);
+  box-shadow: var(--panel-shadow);
 }
 
 .hero h1,
 .panel h2 {
   margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
 }
 
 .hero p,
@@ -76,6 +78,41 @@ pre {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+.heroSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.heroSummary > div,
+.welcomeCard,
+.logItem,
+.logMeta {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 18px;
+}
+
+.heroSummary > div {
+  padding: 14px 16px;
+}
+
+.summaryLabel,
+.eyebrow,
+.panelKicker,
+.logLabel {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.heroSummary strong,
+.panelKicker {
+  font-size: 0.96rem;
 }
 
 .linkButton,
@@ -105,7 +142,7 @@ button:hover {
 
 .grid {
   display: grid;
-  gap: 20px;
+  gap: 22px;
   margin-top: 24px;
 }
 
@@ -118,9 +155,10 @@ button:hover {
 .panel {
   border: 1px solid var(--line);
   border-radius: 24px;
-  padding: 22px;
+  padding: 24px;
   background: var(--card);
   backdrop-filter: blur(12px);
+  box-shadow: var(--panel-shadow);
 }
 
 .formRow {
@@ -167,6 +205,24 @@ textarea {
   white-space: pre-wrap;
 }
 
+.jsonCard {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.8);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.jsonCardNeutral {
+  color: var(--ink);
+  min-height: 180px;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .status.success {
   color: var(--success);
 }
@@ -189,5 +245,107 @@ pre {
 }
 
 .payloadBox {
-  min-height: 156px;
+  min-height: 180px;
+  margin-top: 14px;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  background: #f7faf9;
+}
+
+.panelHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panelKicker {
+  margin: 0;
+  text-align: right;
+}
+
+.logMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-top: 12px;
+}
+
+.logMeta code {
+  color: var(--ink);
+  text-align: right;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.8rem;
+  word-break: break-word;
+}
+
+.logStream {
+  margin-top: 16px;
+  display: grid;
+  gap: 12px;
+}
+
+.logItem {
+  padding: 14px 16px;
+}
+
+.logItem pre {
+  margin: 10px 0 0;
+  max-height: 160px;
+  overflow: auto;
+  font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.welcomeCard {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.welcomeCard h3 {
+  margin: 6px 0 8px;
+  font-size: 1.18rem;
+}
+
+.jsonSection {
+  margin-top: 18px;
+}
+
+.jsonSectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+}
+
+.jsonSectionHeader h3 {
+  margin: 4px 0 0;
+  font-size: 1.02rem;
+}
+
+@media (max-width: 720px) {
+  .hero,
+  .panel {
+    padding: 20px;
+  }
+
+  .heroSummary,
+  .panelHeading {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .panelHeading {
+    align-items: start;
+  }
+
+  .panelKicker {
+    text-align: left;
+  }
+
+  .jsonSectionHeader {
+    display: grid;
+    align-items: start;
+  }
 }
