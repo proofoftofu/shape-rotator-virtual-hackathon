@@ -1,10 +1,16 @@
 # U2SSO Pass
 
-## Live Demo
+## Live App
 
 https://shape-rotator-virtual-hackathon.vercel.app
 
+## Demo
+
+https://youtu.be/ckCiXJDmCkU
+
 ## Description
+
+![screenshot](./assets/screenshot.png)
 
 U2SSO Pass is a Chrome-extension-based identity demo inspired by the paper **Anonymous Self-Credentials & SSO** and implemented with the sample U2SSO flow.
 
